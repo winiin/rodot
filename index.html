@@ -1,0 +1,983 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>RoboLab — Robotics Engineering Platform</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+        <div class="logo">
+            <div class="logo-icon">R</div>
+            <div>
+                <strong>RoboLab</strong>
+                <span>Engineering Platform</span>
+            </div>
+        </div>
+
+        <nav>
+
+            <button class="nav-item active" data-page="dashboard">
+                <span>⌂</span>
+                Главная
+            </button>
+
+            <button class="nav-item" data-page="builder">
+                <span>◈</span>
+                3D Сборка
+            </button>
+
+            <button class="nav-item" data-page="components">
+                <span>▦</span>
+                Компоненты
+            </button>
+
+            <button class="nav-item" data-page="electronics">
+                <span>⌁</span>
+                Электросхема
+            </button>
+
+            <button class="nav-item" data-page="code">
+                <span>&lt;/&gt;</span>
+                RoboCode
+            </button>
+
+            <button class="nav-item" data-page="calculator">
+                <span>∑</span>
+                Расчёты
+            </button>
+
+            <button class="nav-item" data-page="testing">
+                <span>✓</span>
+                Тестирование
+            </button>
+
+            <button class="nav-item" data-page="documentation">
+                <span>▤</span>
+                Документация
+            </button>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+
+            <div class="system-status">
+                <span class="status-dot"></span>
+                Система работает
+            </div>
+
+            <button class="save-project" id="saveProject">
+                💾 Сохранить проект
+            </button>
+
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+
+            <div>
+                <div class="breadcrumb">
+                    RoboLab / <span id="currentSection">Главная</span>
+                </div>
+                <h1 id="pageTitle">Центр робототехнического проекта</h1>
+            </div>
+
+            <div class="top-actions">
+
+                <div class="project-name">
+                    <span>Проект</span>
+                    <strong id="projectName">Robo-X01</strong>
+                </div>
+
+                <button class="icon-button">🔔</button>
+
+                <div class="avatar">
+                    RL
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- DASHBOARD -->
+        <section class="page active" id="dashboard">
+
+            <div class="hero">
+
+                <div class="hero-content">
+
+                    <span class="badge">ROBOTICS ENGINEERING PLATFORM</span>
+
+                    <h2>
+                        Создавай.
+                        <span>Собирай.</span>
+                        Тестируй.
+                    </h2>
+
+                    <p>
+                        Единая рабочая среда для проектирования,
+                        программирования и анализа робототехнических систем.
+                    </p>
+
+                    <div class="hero-buttons">
+
+                        <button class="primary-btn" data-open="builder">
+                            Начать сборку →
+                        </button>
+
+                        <button class="secondary-btn" data-open="code">
+                            Открыть RoboCode
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div class="hero-robot">
+
+                    <div class="robot-glow"></div>
+
+                    <div class="mini-robot">
+                        <div class="robot-head"></div>
+                        <div class="robot-body"></div>
+                        <div class="robot-arm left"></div>
+                        <div class="robot-arm right"></div>
+                        <div class="robot-wheel left"></div>
+                        <div class="robot-wheel right"></div>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="stats-grid">
+
+                <div class="stat-card">
+                    <span>Компонентов</span>
+                    <strong id="componentCount">6</strong>
+                    <small>в текущей сборке</small>
+                </div>
+
+                <div class="stat-card">
+                    <span>Масса</span>
+                    <strong id="massStat">1.84 кг</strong>
+                    <small>расчётная</small>
+                </div>
+
+                <div class="stat-card">
+                    <span>Мощность</span>
+                    <strong id="powerStat">42 W</strong>
+                    <small>максимальная</small>
+                </div>
+
+                <div class="stat-card">
+                    <span>Готовность</span>
+                    <strong class="green">82%</strong>
+                    <small>до тестирования</small>
+                </div>
+
+            </div>
+
+
+            <div class="dashboard-grid">
+
+                <div class="panel">
+
+                    <div class="panel-header">
+                        <div>
+                            <h3>Текущий проект</h3>
+                            <p>Robo-X01 Autonomous Robot</p>
+                        </div>
+
+                        <span class="online">ACTIVE</span>
+                    </div>
+
+                    <div class="project-progress">
+
+                        <div class="progress-info">
+                            <span>Прогресс разработки</span>
+                            <strong>82%</strong>
+                        </div>
+
+                        <div class="progress">
+                            <div style="width:82%"></div>
+                        </div>
+
+                    </div>
+
+                    <div class="project-steps">
+
+                        <div class="step done">
+                            <span>✓</span>
+                            Механическая конструкция
+                        </div>
+
+                        <div class="step done">
+                            <span>✓</span>
+                            Электроника
+                        </div>
+
+                        <div class="step done">
+                            <span>✓</span>
+                            Датчики
+                        </div>
+
+                        <div class="step active-step">
+                            <span>4</span>
+                            Программирование
+                        </div>
+
+                        <div class="step">
+                            <span>5</span>
+                            Тестирование
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="panel quick-panel">
+
+                    <div class="panel-header">
+                        <div>
+                            <h3>Быстрые действия</h3>
+                            <p>Основные инструменты</p>
+                        </div>
+                    </div>
+
+                    <button class="quick-action" data-open="builder">
+                        <span>◈</span>
+                        <div>
+                            <strong>3D Конструктор</strong>
+                            <small>Редактировать сборку</small>
+                        </div>
+                        <b>→</b>
+                    </button>
+
+                    <button class="quick-action" data-open="components">
+                        <span>▦</span>
+                        <div>
+                            <strong>Добавить компонент</strong>
+                            <small>Каталог оборудования</small>
+                        </div>
+                        <b>→</b>
+                    </button>
+
+                    <button class="quick-action" data-open="testing">
+                        <span>✓</span>
+                        <div>
+                            <strong>Запустить диагностику</strong>
+                            <small>Проверить проект</small>
+                        </div>
+                        <b>→</b>
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- 3D BUILDER -->
+        <section class="page" id="builder">
+
+            <div class="builder-layout">
+
+                <div class="viewer-panel">
+
+                    <div class="viewer-toolbar">
+
+                        <div>
+                            <strong>3D Assembly</strong>
+                            <span>Robo-X01</span>
+                        </div>
+
+                        <div class="viewer-actions">
+                            <button id="resetCamera">⟳</button>
+                            <button id="rotateRobot">↻</button>
+                            <button id="toggleGrid">▦</button>
+                        </div>
+
+                    </div>
+
+                    <div id="threeContainer"></div>
+
+                    <div class="viewer-info">
+
+                        <span>🖱 Перетаскивание — вращение</span>
+                        <span>◉ Колесо — масштаб</span>
+                        <span>R — сброс</span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="builder-sidebar">
+
+                    <div class="side-section">
+
+                        <h3>Сборка</h3>
+
+                        <div class="assembly-item active">
+                            <span class="component-icon">▣</span>
+                            <div>
+                                <strong>Основной корпус</strong>
+                                <small>Aluminium frame</small>
+                            </div>
+                            <span>✓</span>
+                        </div>
+
+                        <div class="assembly-item">
+                            <span class="component-icon">⚙</span>
+                            <div>
+                                <strong>Мотор × 2</strong>
+                                <small>DC Gear Motor</small>
+                            </div>
+                            <span>✓</span>
+                        </div>
+
+                        <div class="assembly-item">
+                            <span class="component-icon">◉</span>
+                            <div>
+                                <strong>Колёса × 2</strong>
+                                <small>65mm rubber</small>
+                            </div>
+                            <span>✓</span>
+                        </div>
+
+                        <div class="assembly-item">
+                            <span class="component-icon">◌</span>
+                            <div>
+                                <strong>Ultrasonic</strong>
+                                <small>HC-SR04</small>
+                            </div>
+                            <span>✓</span>
+                        </div>
+
+                        <div class="assembly-item">
+                            <span class="component-icon">▰</span>
+                            <div>
+                                <strong>Контроллер</strong>
+                                <small>ESP32</small>
+                            </div>
+                            <span>✓</span>
+                        </div>
+
+                    </div>
+
+
+                    <div class="side-section">
+
+                        <h3>Параметры</h3>
+
+                        <div class="parameter">
+                            <span>Масса</span>
+                            <strong>1.84 kg</strong>
+                        </div>
+
+                        <div class="parameter">
+                            <span>Ширина</span>
+                            <strong>210 mm</strong>
+                        </div>
+
+                        <div class="parameter">
+                            <span>Длина</span>
+                            <strong>280 mm</strong>
+                        </div>
+
+                        <div class="parameter">
+                            <span>Высота</span>
+                            <strong>165 mm</strong>
+                        </div>
+
+                    </div>
+
+                    <button class="primary-btn full" id="addComponent">
+                        + Добавить компонент
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- COMPONENTS -->
+        <section class="page" id="components">
+
+            <div class="section-heading">
+                <div>
+                    <span class="badge">COMPONENT LIBRARY</span>
+                    <h2>Каталог компонентов</h2>
+                    <p>Выбирай оборудование для своей робототехнической системы.</p>
+                </div>
+
+                <input
+                    class="search-input"
+                    id="componentSearch"
+                    type="text"
+                    placeholder="Поиск компонентов..."
+                >
+            </div>
+
+
+            <div class="component-grid" id="componentGrid">
+
+                <div class="component-card" data-name="esp32 controller">
+                    <div class="component-image controller">ESP32</div>
+                    <span class="component-type">CONTROLLER</span>
+                    <h3>ESP32 DevKit</h3>
+                    <p>Wi-Fi / Bluetooth микроконтроллер.</p>
+                    <div class="component-bottom">
+                        <strong>5V</strong>
+                        <button class="add-btn" data-component="ESP32">Добавить</button>
+                    </div>
+                </div>
+
+                <div class="component-card" data-name="arduino uno controller">
+                    <div class="component-image arduino">ARDUINO</div>
+                    <span class="component-type">CONTROLLER</span>
+                    <h3>Arduino UNO</h3>
+                    <p>Популярная платформа для прототипирования.</p>
+                    <div class="component-bottom">
+                        <strong>5V</strong>
+                        <button class="add-btn" data-component="Arduino UNO">Добавить</button>
+                    </div>
+                </div>
+
+                <div class="component-card" data-name="dc motor motor">
+                    <div class="component-image motor">⚙</div>
+                    <span class="component-type">MOTOR</span>
+                    <h3>DC Gear Motor</h3>
+                    <p>Мотор-редуктор для мобильных платформ.</p>
+                    <div class="component-bottom">
+                        <strong>12V / 21W</strong>
+                        <button class="add-btn" data-component="DC Motor">Добавить</button>
+                    </div>
+                </div>
+
+                <div class="component-card" data-name="hc sr04 ultrasonic sensor">
+                    <div class="component-image sensor">◉</div>
+                    <span class="component-type">SENSOR</span>
+                    <h3>HC-SR04</h3>
+                    <p>Ультразвуковой датчик расстояния.</p>
+                    <div class="component-bottom">
+                        <strong>5V</strong>
+                        <button class="add-btn" data-component="HC-SR04">Добавить</button>
+                    </div>
+                </div>
+
+                <div class="component-card" data-name="camera ai vision">
+                    <div class="component-image camera">◉</div>
+                    <span class="component-type">VISION</span>
+                    <h3>AI Camera</h3>
+                    <p>Камера для компьютерного зрения.</p>
+                    <div class="component-bottom">
+                        <strong>5V</strong>
+                        <button class="add-btn" data-component="AI Camera">Добавить</button>
+                    </div>
+                </div>
+
+                <div class="component-card" data-name="battery battery">
+                    <div class="component-image battery">▰</div>
+                    <span class="component-type">POWER</span>
+                    <h3>Li-ion Battery</h3>
+                    <p>Источник питания мобильной платформы.</p>
+                    <div class="component-bottom">
+                        <strong>12V / 5Ah</strong>
+                        <button class="add-btn" data-component="Battery">Добавить</button>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ELECTRONICS -->
+        <section class="page" id="electronics">
+
+            <div class="section-heading">
+                <div>
+                    <span class="badge">ELECTRONICS</span>
+                    <h2>Электрическая система</h2>
+                    <p>Контролируй соединения между компонентами робота.</p>
+                </div>
+            </div>
+
+
+            <div class="electronics-layout">
+
+                <div class="circuit-board">
+
+                    <div class="board-title">
+                        <span>ROBOT CONTROL BOARD</span>
+                        <span class="online">POWER ON</span>
+                    </div>
+
+                    <div class="circuit-grid">
+
+                        <div class="circuit-component controller-node">
+                            <strong>ESP32</strong>
+                            <small>MAIN MCU</small>
+                            <span class="pin top"></span>
+                            <span class="pin bottom"></span>
+                            <span class="pin left"></span>
+                            <span class="pin right"></span>
+                        </div>
+
+                        <div class="circuit-component motor-node">
+                            <strong>MOTOR DRIVER</strong>
+                            <small>L298N</small>
+                            <span class="pin left"></span>
+                            <span class="pin right"></span>
+                        </div>
+
+                        <div class="circuit-component sensor-node">
+                            <strong>HC-SR04</strong>
+                            <small>DISTANCE</small>
+                            <span class="pin left"></span>
+                        </div>
+
+                        <div class="circuit-component battery-node">
+                            <strong>12V</strong>
+                            <small>BATTERY</small>
+                            <span class="pin right"></span>
+                        </div>
+
+                        <div class="wire wire-1"></div>
+                        <div class="wire wire-2"></div>
+                        <div class="wire wire-3"></div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="connection-panel">
+
+                    <h3>Подключения</h3>
+
+                    <div class="connection">
+                        <span class="connection-dot green"></span>
+                        <div>
+                            <strong>ESP32 → L298N</strong>
+                            <small>GPIO 25 / 26</small>
+                        </div>
+                        <span>OK</span>
+                    </div>
+
+                    <div class="connection">
+                        <span class="connection-dot green"></span>
+                        <div>
+                            <strong>ESP32 → HC-SR04</strong>
+                            <small>GPIO 18 / 19</small>
+                        </div>
+                        <span>OK</span>
+                    </div>
+
+                    <div class="connection">
+                        <span class="connection-dot green"></span>
+                        <div>
+                            <strong>Battery → Driver</strong>
+                            <small>12V / GND</small>
+                        </div>
+                        <span>OK</span>
+                    </div>
+
+                    <div class="warning-box">
+                        ⚠ Проверь полярность питания перед подключением реального оборудования.
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- CODE -->
+        <section class="page" id="code">
+
+            <div class="code-layout">
+
+                <div class="code-editor">
+
+                    <div class="editor-header">
+                        <div>
+                            <span class="file-dot"></span>
+                            robot_control.ino
+                        </div>
+
+                        <button id="runCode" class="run-button">
+                            ▶ Запустить
+                        </button>
+                    </div>
+
+                    <textarea id="codeEditor">/*
+ * Robo-X01 Control Program
+ * RoboLab Engineering Platform
+ */
+
+#define MOTOR_LEFT 25
+#define MOTOR_RIGHT 26
+#define TRIG_PIN 18
+#define ECHO_PIN 19
+
+void setup() {
+    Serial.begin(115200);
+
+    pinMode(MOTOR_LEFT, OUTPUT);
+    pinMode(MOTOR_RIGHT, OUTPUT);
+
+    pinMode(TRIG_PIN, OUTPUT);
+    pinMode(ECHO_PIN, INPUT);
+
+    Serial.println("Robo-X01 initialized");
+}
+
+float getDistance() {
+
+    digitalWrite(TRIG_PIN, LOW);
+    delayMicroseconds(2);
+
+    digitalWrite(TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG_PIN, LOW);
+
+    long duration = pulseIn(ECHO_PIN, HIGH);
+
+    return duration * 0.034 / 2;
+}
+
+void loop() {
+
+    float distance = getDistance();
+
+    Serial.print("Distance: ");
+    Serial.println(distance);
+
+    if (distance < 25) {
+
+        stopRobot();
+
+        delay(300);
+
+        turnRight();
+
+    } else {
+
+        moveForward();
+
+    }
+
+    delay(50);
+}
+
+void moveForward() {
+    analogWrite(MOTOR_LEFT, 180);
+    analogWrite(MOTOR_RIGHT, 180);
+}
+
+void stopRobot() {
+    analogWrite(MOTOR_LEFT, 0);
+    analogWrite(MOTOR_RIGHT, 0);
+}
+
+void turnRight() {
+    analogWrite(MOTOR_LEFT, 200);
+    analogWrite(MOTOR_RIGHT, 50);
+
+    delay(400);
+}</textarea>
+
+                </div>
+
+
+                <div class="code-tools">
+
+                    <h3>RoboCode</h3>
+
+                    <p>Готовые функции управления роботом.</p>
+
+                    <button class="code-snippet" data-code="moveForward();">
+                        → Движение вперёд
+                    </button>
+
+                    <button class="code-snippet" data-code="stopRobot();">
+                        ■ Остановка
+                    </button>
+
+                    <button class="code-snippet" data-code="turnRight();">
+                        ↻ Поворот
+                    </button>
+
+                    <button class="code-snippet" data-code="float distance = getDistance();">
+                        ◉ Датчик расстояния
+                    </button>
+
+                    <div class="terminal" id="terminal">
+                        <div>> RoboLab terminal</div>
+                        <div>> System ready...</div>
+                        <div>> ESP32 connected</div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- CALCULATOR -->
+        <section class="page" id="calculator">
+
+            <div class="section-heading">
+                <div>
+                    <span class="badge">ENGINEERING CALCULATOR</span>
+                    <h2>Расчёт системы</h2>
+                    <p>Проверь основные параметры будущего робота.</p>
+                </div>
+            </div>
+
+
+            <div class="calculator-grid">
+
+                <div class="calc-card">
+
+                    <h3>Параметры робота</h3>
+
+                    <label>
+                        Масса робота, кг
+                        <input type="number" id="robotMass" value="1.84" step="0.1">
+                    </label>
+
+                    <label>
+                        Мощность одного мотора, W
+                        <input type="number" id="motorPower" value="21">
+                    </label>
+
+                    <label>
+                        Ёмкость батареи, Ah
+                        <input type="number" id="batteryCapacity" value="5">
+                    </label>
+
+                    <label>
+                        Напряжение батареи, V
+                        <input type="number" id="batteryVoltage" value="12">
+                    </label>
+
+                    <button class="primary-btn full" id="calculate">
+                        Рассчитать
+                    </button>
+
+                </div>
+
+
+                <div class="results-card">
+
+                    <h3>Результат</h3>
+
+                    <div class="result">
+                        <span>Общая мощность</span>
+                        <strong id="totalPower">42 W</strong>
+                    </div>
+
+                    <div class="result">
+                        <span>Энергия батареи</span>
+                        <strong id="energy">60 Wh</strong>
+                    </div>
+
+                    <div class="result">
+                        <span>Расчётное время работы</span>
+                        <strong id="runtime">1.43 h</strong>
+                    </div>
+
+                    <div class="result">
+                        <span>Нагрузка</span>
+                        <strong id="load">18.1 N</strong>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- TESTING -->
+        <section class="page" id="testing">
+
+            <div class="section-heading">
+                <div>
+                    <span class="badge">SYSTEM DIAGNOSTICS</span>
+                    <h2>Тестирование робота</h2>
+                    <p>Проверка проекта перед реальным запуском.</p>
+                </div>
+
+                <button class="primary-btn" id="runDiagnostics">
+                    ▶ Запустить диагностику
+                </button>
+            </div>
+
+
+            <div class="diagnostic-card">
+
+                <div class="diagnostic-header">
+                    <strong>Robo-X01 Diagnostic System</strong>
+                    <span id="diagnosticStatus">READY</span>
+                </div>
+
+                <div id="diagnosticList">
+
+                    <div class="diagnostic-row">
+                        <span>✓</span>
+                        <div>
+                            <strong>Контроллер</strong>
+                            <small>ESP32 detected</small>
+                        </div>
+                        <b>PASS</b>
+                    </div>
+
+                    <div class="diagnostic-row">
+                        <span>✓</span>
+                        <div>
+                            <strong>Питание</strong>
+                            <small>12V battery detected</small>
+                        </div>
+                        <b>PASS</b>
+                    </div>
+
+                    <div class="diagnostic-row">
+                        <span>✓</span>
+                        <div>
+                            <strong>Двигатели</strong>
+                            <small>2 motors configured</small>
+                        </div>
+                        <b>PASS</b>
+                    </div>
+
+                    <div class="diagnostic-row">
+                        <span>✓</span>
+                        <div>
+                            <strong>Датчики</strong>
+                            <small>HC-SR04 connected</small>
+                        </div>
+                        <b>PASS</b>
+                    </div>
+
+                    <div class="diagnostic-row">
+                        <span>!</span>
+                        <div>
+                            <strong>Программирование</strong>
+                            <small>Upload firmware required</small>
+                        </div>
+                        <b>WAIT</b>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- DOCUMENTATION -->
+        <section class="page" id="documentation">
+
+            <div class="section-heading">
+                <div>
+                    <span class="badge">ENGINEERING KNOWLEDGE</span>
+                    <h2>Документация</h2>
+                    <p>База знаний для разработки робототехнических систем.</p>
+                </div>
+            </div>
+
+
+            <div class="docs-grid">
+
+                <article class="doc-card">
+                    <span>01</span>
+                    <h3>Механика</h3>
+                    <p>
+                        Основы конструкции мобильных платформ,
+                        крепления, колёса, редукторы и балансировка.
+                    </p>
+                    <button>Открыть →</button>
+                </article>
+
+                <article class="doc-card">
+                    <span>02</span>
+                    <h3>Электроника</h3>
+                    <p>
+                        Контроллеры, драйверы моторов, питание,
+                        датчики и безопасное подключение.
+                    </p>
+                    <button>Открыть →</button>
+                </article>
+
+                <article class="doc-card">
+                    <span>03</span>
+                    <h3>Программирование</h3>
+                    <p>
+                        Arduino, ESP32, C++, управление моторами,
+                        датчики и алгоритмы автономного движения.
+                    </p>
+                    <button>Открыть →</button>
+                </article>
+
+                <article class="doc-card">
+                    <span>04</span>
+                    <h3>Computer Vision</h3>
+                    <p>
+                        Камеры, распознавание объектов,
+                        OpenCV и применение AI в роботах.
+                    </p>
+                    <button>Открыть →</button>
+                </article>
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+</div>
+
+
+<div class="toast" id="toast">
+    Проект сохранён
+</div>
+
+
+<script src="script.js"></script>
+
+</body>
+</html>
+```
