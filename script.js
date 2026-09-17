@@ -1,843 +1,1099 @@
-```javascript
-/* =========================================================
-   ROBOLAB ENGINEERING PLATFORM
-   Main JavaScript
-========================================================= */
+document.addEventListener("DOMContentLoaded", () => {
+
+    "use strict";
 
 
-/* =========================================================
-   NAVIGATION
-========================================================= */
+    /* =====================================================
+       STATE
+    ===================================================== */
 
-const navItems = document.querySelectorAll(".nav-item");
-const pages = document.querySelectorAll(".page");
+    let components = [];
 
-const pageTitles = {
-    dashboard: "Центр робототехнического проекта",
-    builder: "3D Конструктор робота",
-    components: "Каталог компонентов",
-    electronics: "Электрическая система",
-    code: "RoboCode — программирование",
-    calculator: "Инженерные расчёты",
-    testing: "Система диагностики",
-    documentation: "Инженерная документация"
-};
+    let scene;
+    let camera;
+    let renderer;
 
-const sectionNames = {
-    dashboard: "Главная",
-    builder: "3D Сборка",
-    components: "Компоненты",
-    electronics: "Электросхема",
-    code: "RoboCode",
-    calculator: "Расчёты",
-    testing: "Тестирование",
-    documentation: "Документация"
-};
+    let robotGroup;
+
+    let isDragging = false;
+
+    let previousMouseX = 0;
+    let previousMouseY = 0;
+
+    let rotationX = 0;
+    let rotationY = 0;
+
+    let cameraDistance = 7;
 
 
-function openPage(pageId) {
+    /* =====================================================
+       HELPERS
+    ===================================================== */
 
-    pages.forEach(page => {
-        page.classList.remove("active");
-    });
-
-    navItems.forEach(item => {
-        item.classList.remove("active");
-    });
-
-    const target = document.getElementById(pageId);
-
-    if (target) {
-        target.classList.add("active");
+    function $(id) {
+        return document.getElementById(id);
     }
 
-    const nav = document.querySelector(
-        `.nav-item[data-page="${pageId}"]`
-    );
 
-    if (nav) {
-        nav.classList.add("active");
-    }
+    function showToast(message) {
 
-    document.getElementById("pageTitle").textContent =
-        pageTitles[pageId];
+        const toast = $("toast");
 
-    document.getElementById("currentSection").textContent =
-        sectionNames[pageId];
+        if (!toast) return;
 
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
+        toast.textContent = message;
 
-    if (pageId === "builder") {
+        toast.classList.add("show");
+
         setTimeout(() => {
-            resizeThree();
-        }, 100);
-    }
-}
-
-
-navItems.forEach(item => {
-
-    item.addEventListener("click", () => {
-
-        const page = item.dataset.page;
-
-        openPage(page);
-
-    });
-
-});
-
-
-document.querySelectorAll("[data-open]").forEach(button => {
-
-    button.addEventListener("click", () => {
-
-        openPage(button.dataset.open);
-
-    });
-
-});
-
-
-/* =========================================================
-   TOAST
-========================================================= */
-
-const toast = document.getElementById("toast");
-
-function showToast(message) {
-
-    toast.textContent = message;
-
-    toast.classList.add("show");
-
-    setTimeout(() => {
-        toast.classList.remove("show");
-    }, 2500);
-
-}
-
-
-/* =========================================================
-   THREE.JS 3D ROBOT
-========================================================= */
-
-let scene;
-let camera;
-let renderer;
-
-let robot;
-let robotBody;
-let robotHead;
-
-let grid;
-
-let autoRotate = false;
-let isDragging = false;
-
-let previousMouse = {
-    x: 0,
-    y: 0
-};
-
-let rotation = {
-    x: 0,
-    y: 0
-};
-
-
-function initThree() {
-
-    const container = document.getElementById("threeContainer");
-
-    if (!container || !window.THREE) {
-        return;
+            toast.classList.remove("show");
+        }, 2200);
     }
 
-    scene = new THREE.Scene();
 
-    scene.background = new THREE.Color(0x080c11);
+    /* =====================================================
+       NAVIGATION
+    ===================================================== */
 
+    const navButtons =
+        document.querySelectorAll(".nav-btn");
 
-    /* CAMERA */
+    const pages =
+        document.querySelectorAll(".page");
 
-    camera = new THREE.PerspectiveCamera(
-        45,
-        container.clientWidth / container.clientHeight,
-        0.1,
-        1000
-    );
+    const pageTitle =
+        $("pageTitle");
 
-    camera.position.set(
-        4.2,
-        3.2,
-        6
-    );
 
+    const titles = {
+        dashboard: "Главная",
+        builder: "3D Сборка",
+        components: "Компоненты",
+        electronics: "Электроника",
+        code: "RoboCode",
+        calculator: "Расчёты",
+        testing: "Диагностика",
+        documentation: "Документация"
+    };
 
-    /* RENDERER */
 
-    renderer = new THREE.WebGLRenderer({
-        antialias: true
-    });
+    function openPage(pageId) {
 
-    renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio, 2)
-    );
+        pages.forEach(page => {
+            page.classList.remove("active");
+        });
 
-    renderer.setSize(
-        container.clientWidth,
-        container.clientHeight
-    );
+        navButtons.forEach(button => {
+            button.classList.remove("active");
+        });
 
-    renderer.shadowMap.enabled = true;
 
-    container.appendChild(renderer.domElement);
+        const target =
+            $(pageId);
 
+        if (target) {
+            target.classList.add("active");
+        }
 
-    /* LIGHTS */
 
-    const ambient = new THREE.AmbientLight(
-        0xffffff,
-        0.55
-    );
+        const button =
+            document.querySelector(
+                `.nav-btn[data-page="${pageId}"]`
+            );
 
-    scene.add(ambient);
+        if (button) {
+            button.classList.add("active");
+        }
 
 
-    const light = new THREE.DirectionalLight(
-        0xffffff,
-        1.2
-    );
+        if (pageTitle) {
+            pageTitle.textContent =
+                titles[pageId] || "RoboLab";
+        }
 
-    light.position.set(
-        5,
-        8,
-        5
-    );
 
-    light.castShadow = true;
+        if (pageId === "builder") {
 
-    scene.add(light);
+            setTimeout(() => {
 
+                resizeThree();
 
-    const greenLight = new THREE.PointLight(
-        0x43e6a5,
-        2,
-        10
-    );
-
-    greenLight.position.set(
-        0,
-        2,
-        2
-    );
-
-    scene.add(greenLight);
-
-
-    /* GRID */
-
-    grid = new THREE.GridHelper(
-        12,
-        24,
-        0x243241,
-        0x151e29
-    );
-
-    grid.position.y = -1.15;
-
-    scene.add(grid);
-
-
-    /* ROBOT */
-
-    robot = new THREE.Group();
-
-    scene.add(robot);
-
-
-    createRobot();
-
-
-    /* EVENTS */
-
-    renderer.domElement.addEventListener(
-        "mousedown",
-        startDrag
-    );
-
-    renderer.domElement.addEventListener(
-        "mousemove",
-        drag
-    );
-
-    renderer.domElement.addEventListener(
-        "mouseup",
-        stopDrag
-    );
-
-    renderer.domElement.addEventListener(
-        "mouseleave",
-        stopDrag
-    );
-
-    renderer.domElement.addEventListener(
-        "wheel",
-        zoomCamera
-    );
-
-
-    animate();
-
-}
-
-
-function material(color, metalness = 0.2) {
-
-    return new THREE.MeshStandardMaterial({
-        color,
-        metalness,
-        roughness: 0.35
-    });
-
-}
-
-
-function createBox(
-    width,
-    height,
-    depth,
-    color,
-    x,
-    y,
-    z
-) {
-
-    const geometry =
-        new THREE.BoxGeometry(
-            width,
-            height,
-            depth
-        );
-
-    const mesh =
-        new THREE.Mesh(
-            geometry,
-            material(color)
-        );
-
-    mesh.position.set(
-        x,
-        y,
-        z
-    );
-
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-
-    robot.add(mesh);
-
-    return mesh;
-
-}
-
-
-function createCylinder(
-    radius,
-    height,
-    color,
-    x,
-    y,
-    z,
-    rotationZ = 0
-) {
-
-    const geometry =
-        new THREE.CylinderGeometry(
-            radius,
-            radius,
-            height,
-            32
-        );
-
-    const mesh =
-        new THREE.Mesh(
-            geometry,
-            material(color)
-        );
-
-    mesh.position.set(
-        x,
-        y,
-        z
-    );
-
-    mesh.rotation.z = rotationZ;
-
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-
-    robot.add(mesh);
-
-    return mesh;
-
-}
-
-
-function createWheel(x) {
-
-    const geometry =
-        new THREE.CylinderGeometry(
-            0.62,
-            0.62,
-            0.35,
-            32
-        );
-
-    const wheel =
-        new THREE.Mesh(
-            geometry,
-            material(0x151b23, 0.7)
-        );
-
-    wheel.rotation.z =
-        Math.PI / 2;
-
-    wheel.position.set(
-        x,
-        -0.65,
-        0
-    );
-
-    wheel.castShadow = true;
-
-    robot.add(wheel);
-
-
-    const hubGeometry =
-        new THREE.CylinderGeometry(
-            0.19,
-            0.19,
-            0.38,
-            20
-        );
-
-    const hub =
-        new THREE.Mesh(
-            hubGeometry,
-            material(0x43e6a5, 0.4)
-        );
-
-    hub.rotation.z =
-        Math.PI / 2;
-
-    hub.position.set(
-        x,
-        -0.65,
-        0
-    );
-
-    robot.add(hub);
-
-}
-
-
-function createRobot() {
-
-    /* Main chassis */
-
-    robotBody = createBox(
-        2.5,
-        0.55,
-        1.65,
-        0x273544,
-        0,
-        0,
-        0
-    );
-
-
-    /* Top plate */
-
-    createBox(
-        1.7,
-        0.15,
-        1.25,
-        0x364657,
-        0,
-        0.37,
-        0
-    );
-
-
-    /* Front bumper */
-
-    createBox(
-        2.35,
-        0.25,
-        0.15,
-        0x43e6a5,
-        0,
-        -0.05,
-        -0.83
-    );
-
-
-    /* Head / sensor housing */
-
-    robotHead = createBox(
-        0.85,
-        0.48,
-        0.65,
-        0x1c2734,
-        0,
-        0.82,
-        0.35
-    );
-
-
-    /* Camera lens */
-
-    const lensGeometry =
-        new THREE.CylinderGeometry(
-            0.18,
-            0.18,
-            0.12,
-            24
-        );
-
-    const lens =
-        new THREE.Mesh(
-            lensGeometry,
-            material(0x43e6a5, 0.7)
-        );
-
-    lens.rotation.x =
-        Math.PI / 2;
-
-    lens.position.set(
-        0,
-        0.82,
-        0.69
-    );
-
-    robot.add(lens);
-
-
-    /* Wheels */
-
-    createWheel(1.28);
-    createWheel(-1.28);
-
-
-    /* Back wheels */
-
-    createWheel(1.28);
-    createWheel(-1.28);
-
-
-    /* Antenna */
-
-    const antenna =
-        createCylinder(
-            0.045,
-            0.65,
-            0x687789,
-            0.3,
-            1.45,
-            0.35
-        );
-
-    antenna.rotation.z = 0;
-
-
-    const antennaTip =
-        new THREE.Mesh(
-            new THREE.SphereGeometry(
-                0.09,
-                16,
-                16
-            ),
-            material(0x43e6a5)
-        );
-
-    antennaTip.position.set(
-        0.3,
-        1.79,
-        0.35
-    );
-
-    robot.add(antennaTip);
-
-
-    /* Side motors */
-
-    createCylinder(
-        0.34,
-        0.35,
-        0x566577,
-        1.28,
-        0,
-        0,
-        Math.PI / 2
-    );
-
-    createCylinder(
-        0.34,
-        0.35,
-        0x566577,
-        -1.28,
-        0,
-        0,
-        Math.PI / 2
-    );
-
-
-    robot.rotation.y = -0.45;
-
-}
-
-
-function startDrag(event) {
-
-    isDragging = true;
-
-    previousMouse.x = event.clientX;
-    previousMouse.y = event.clientY;
-
-}
-
-
-function drag(event) {
-
-    if (!isDragging || !robot) {
-        return;
+            }, 100);
+        }
     }
 
-    const deltaX =
-        event.clientX -
-        previousMouse.x;
 
-    const deltaY =
-        event.clientY -
-        previousMouse.y;
+    navButtons.forEach(button => {
 
-    robot.rotation.y +=
-        deltaX * 0.008;
+        button.addEventListener("click", () => {
 
-    robot.rotation.x +=
-        deltaY * 0.005;
+            const page =
+                button.dataset.page;
 
-    robot.rotation.x =
-        Math.max(
-            -0.8,
+            openPage(page);
+
+        });
+
+    });
+
+
+    document.querySelectorAll("[data-open]")
+        .forEach(button => {
+
+            button.addEventListener("click", () => {
+
+                openPage(button.dataset.open);
+
+            });
+
+        });
+
+
+    /* =====================================================
+       CLOCK
+    ===================================================== */
+
+    function updateClock() {
+
+        const clock = $("clock");
+
+        if (!clock) return;
+
+        const now = new Date();
+
+        clock.textContent =
+            now.toLocaleTimeString(
+                "ru-RU",
+                {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                }
+            );
+    }
+
+    updateClock();
+
+    setInterval(updateClock, 1000);
+
+
+    /* =====================================================
+       THREE.JS
+    ===================================================== */
+
+    function initThree() {
+
+        const container =
+            $("threeContainer");
+
+        if (!container) return;
+
+
+        if (typeof THREE === "undefined") {
+
+            container.innerHTML = `
+                <div style="
+                    height:100%;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    padding:30px;
+                    text-align:center;
+                    color:#ff7777;
+                    font-family:Arial;
+                ">
+                    <div>
+                        <h3>3D Engine не загрузился</h3>
+                        <p style="margin-top:10px;color:#82968d">
+                            Проверь подключение к интернету и обнови страницу.
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            return;
+        }
+
+
+        scene =
+            new THREE.Scene();
+
+        scene.background =
+            new THREE.Color(0x07100d);
+
+
+        camera =
+            new THREE.PerspectiveCamera(
+                45,
+                container.clientWidth /
+                container.clientHeight,
+                0.1,
+                100
+            );
+
+
+        camera.position.set(
+            5,
+            3.5,
+            6
+        );
+
+
+        renderer =
+            new THREE.WebGLRenderer({
+                antialias: true
+            });
+
+
+        renderer.setPixelRatio(
             Math.min(
-                0.8,
-                robot.rotation.x
+                window.devicePixelRatio || 1,
+                2
             )
         );
 
-    previousMouse.x = event.clientX;
-    previousMouse.y = event.clientY;
 
-}
-
-
-function stopDrag() {
-
-    isDragging = false;
-
-}
+        renderer.setSize(
+            container.clientWidth,
+            container.clientHeight
+        );
 
 
-function zoomCamera(event) {
+        container.appendChild(
+            renderer.domElement
+        );
 
-    if (!camera) {
-        return;
-    }
 
-    camera.position.z +=
-        event.deltaY * 0.004;
+        /* LIGHT */
 
-    camera.position.z =
-        Math.max(
+        const ambient =
+            new THREE.AmbientLight(
+                0xffffff,
+                1.5
+            );
+
+        scene.add(ambient);
+
+
+        const light =
+            new THREE.DirectionalLight(
+                0xffffff,
+                2
+            );
+
+        light.position.set(
+            5,
+            8,
+            5
+        );
+
+        scene.add(light);
+
+
+        const greenLight =
+            new THREE.PointLight(
+                0x39e58c,
+                25,
+                20
+            );
+
+        greenLight.position.set(
+            0,
             3,
-            Math.min(
-                10,
-                camera.position.z
-            )
+            0
         );
 
-}
+        scene.add(greenLight);
 
 
-function animate() {
+        /* GRID */
 
-    requestAnimationFrame(animate);
+        const grid =
+            new THREE.GridHelper(
+                12,
+                24,
+                0x294638,
+                0x17251f
+            );
 
-    if (autoRotate && robot) {
+        scene.add(grid);
 
-        robot.rotation.y += 0.006;
 
+        /* ROBOT */
+
+        robotGroup =
+            new THREE.Group();
+
+        scene.add(robotGroup);
+
+
+        createBaseRobot();
+
+
+        /* EVENTS */
+
+        renderer.domElement.addEventListener(
+            "pointerdown",
+            onPointerDown
+        );
+
+        renderer.domElement.addEventListener(
+            "pointermove",
+            onPointerMove
+        );
+
+        renderer.domElement.addEventListener(
+            "pointerup",
+            onPointerUp
+        );
+
+        renderer.domElement.addEventListener(
+            "pointerleave",
+            onPointerUp
+        );
+
+        renderer.domElement.addEventListener(
+            "wheel",
+            onWheel,
+            { passive: false }
+        );
+
+
+        animate();
     }
 
-    if (renderer && scene && camera) {
+
+    function createMaterial(color) {
+
+        return new THREE.MeshStandardMaterial({
+            color: color,
+            roughness: .55,
+            metalness: .35
+        });
+    }
+
+
+    function createBaseRobot() {
+
+        if (!robotGroup) return;
+
+
+        robotGroup.clear();
+
+
+        /* BODY */
+
+        const bodyGeometry =
+            new THREE.BoxGeometry(
+                3,
+                .7,
+                2.2
+            );
+
+        const body =
+            new THREE.Mesh(
+                bodyGeometry,
+                createMaterial(0x263a32)
+            );
+
+        body.position.y = 1.1;
+
+        robotGroup.add(body);
+
+
+        /* TOP */
+
+        const topGeometry =
+            new THREE.BoxGeometry(
+                1.5,
+                .35,
+                1.2
+            );
+
+        const top =
+            new THREE.Mesh(
+                topGeometry,
+                createMaterial(0x39e58c)
+            );
+
+        top.position.y = 1.62;
+
+        robotGroup.add(top);
+
+
+        /* WHEELS */
+
+        const wheelGeometry =
+            new THREE.CylinderGeometry(
+                .62,
+                .62,
+                .45,
+                32
+            );
+
+
+        const wheelMaterial =
+            createMaterial(0x121816);
+
+
+        const positions = [
+            [-1.35, .65, 1.05],
+            [1.35, .65, 1.05],
+            [-1.35, .65, -1.05],
+            [1.35, .65, -1.05]
+        ];
+
+
+        positions.forEach(position => {
+
+            const wheel =
+                new THREE.Mesh(
+                    wheelGeometry,
+                    wheelMaterial
+                );
+
+            wheel.rotation.z =
+                Math.PI / 2;
+
+            wheel.position.set(
+                position[0],
+                position[1],
+                position[2]
+            );
+
+            robotGroup.add(wheel);
+
+        });
+
+
+        /* FRONT SENSOR */
+
+        const sensorGeometry =
+            new THREE.SphereGeometry(
+                .22,
+                24,
+                24
+            );
+
+        const sensor =
+            new THREE.Mesh(
+                sensorGeometry,
+                createMaterial(0x39e58c)
+            );
+
+        sensor.position.set(
+            0,
+            1.55,
+            1.15
+        );
+
+        robotGroup.add(sensor);
+
+
+        updateObjectCounter();
+    }
+
+
+    function addComponentTo3D(component) {
+
+        if (!robotGroup || !THREE) return;
+
+
+        let object;
+
+
+        if (component.type === "motor") {
+
+            object =
+                new THREE.Mesh(
+                    new THREE.CylinderGeometry(
+                        .32,
+                        .32,
+                        .7,
+                        24
+                    ),
+                    createMaterial(0x555f5b)
+                );
+
+            object.rotation.z =
+                Math.PI / 2;
+
+        }
+
+
+        else if (component.type === "sensor") {
+
+            object =
+                new THREE.Mesh(
+                    new THREE.SphereGeometry(
+                        .28,
+                        24,
+                        24
+                    ),
+                    createMaterial(0x39e58c)
+                );
+
+        }
+
+
+        else if (component.type === "camera") {
+
+            object =
+                new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        .6,
+                        .45,
+                        .35
+                    ),
+                    createMaterial(0x202b27)
+                );
+
+        }
+
+
+        else if (component.type === "battery") {
+
+            object =
+                new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        .8,
+                        .35,
+                        1.1
+                    ),
+                    createMaterial(0xd3a83e)
+                );
+
+        }
+
+
+        else {
+
+            object =
+                new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        .75,
+                        .2,
+                        .55
+                    ),
+                    createMaterial(0x2d8060)
+                );
+        }
+
+
+        if (!object) return;
+
+
+        const index =
+            robotGroup.children.length;
+
+        object.position.set(
+            ((index % 3) - 1) * .7,
+            2.1 + Math.floor(index / 3) * .35,
+            0
+        );
+
+
+        object.userData.componentId =
+            component.id;
+
+
+        robotGroup.add(object);
+
+
+        updateObjectCounter();
+    }
+
+
+    function rebuild3D() {
+
+        if (!robotGroup) return;
+
+        createBaseRobot();
+
+        components.forEach(component => {
+
+            addComponentTo3D(component);
+
+        });
+    }
+
+
+    function animate() {
+
+        requestAnimationFrame(animate);
+
+        if (!renderer || !scene || !camera) {
+            return;
+        }
+
+
+        if (robotGroup) {
+
+            robotGroup.rotation.x =
+                rotationX;
+
+            robotGroup.rotation.y =
+                rotationY;
+
+        }
+
 
         renderer.render(
             scene,
             camera
         );
-
     }
 
-}
 
+    function resizeThree() {
 
-function resizeThree() {
-
-    const container =
-        document.getElementById(
-            "threeContainer"
-        );
-
-    if (!container || !renderer || !camera) {
-        return;
-    }
-
-    camera.aspect =
-        container.clientWidth /
-        container.clientHeight;
-
-    camera.updateProjectionMatrix();
-
-    renderer.setSize(
-        container.clientWidth,
-        container.clientHeight
-    );
-
-}
-
-
-window.addEventListener(
-    "resize",
-    resizeThree
-);
-
-
-/* RESET CAMERA */
-
-document
-    .getElementById("resetCamera")
-    .addEventListener("click", () => {
-
-        camera.position.set(
-            4.2,
-            3.2,
-            6
-        );
-
-        robot.rotation.set(
-            0,
-            -0.45,
-            0
-        );
-
-    });
-
-
-/* AUTO ROTATION */
-
-document
-    .getElementById("rotateRobot")
-    .addEventListener("click", () => {
-
-        autoRotate = !autoRotate;
-
-        showToast(
-            autoRotate
-                ? "Автовращение включено"
-                : "Автовращение выключено"
-        );
-
-    });
-
-
-/* GRID */
-
-document
-    .getElementById("toggleGrid")
-    .addEventListener("click", () => {
-
-        grid.visible =
-            !grid.visible;
-
-    });
-
-
-/* R KEY */
-
-document.addEventListener(
-    "keydown",
-    event => {
+        const container =
+            $("threeContainer");
 
         if (
-            event.key.toLowerCase() === "r" &&
-            camera &&
-            robot
+            !container ||
+            !renderer ||
+            !camera
         ) {
+            return;
+        }
 
-            camera.position.set(
-                4.2,
-                3.2,
-                6
+
+        const width =
+            container.clientWidth;
+
+        const height =
+            container.clientHeight;
+
+
+        if (!width || !height) return;
+
+
+        camera.aspect =
+            width / height;
+
+        camera.updateProjectionMatrix();
+
+
+        renderer.setSize(
+            width,
+            height
+        );
+    }
+
+
+    window.addEventListener(
+        "resize",
+        resizeThree
+    );
+
+
+    /* =====================================================
+       3D CONTROLS
+    ===================================================== */
+
+    function onPointerDown(event) {
+
+        isDragging = true;
+
+        previousMouseX =
+            event.clientX;
+
+        previousMouseY =
+            event.clientY;
+    }
+
+
+    function onPointerMove(event) {
+
+        if (!isDragging) return;
+
+        const deltaX =
+            event.clientX -
+            previousMouseX;
+
+        const deltaY =
+            event.clientY -
+            previousMouseY;
+
+
+        rotationY +=
+            deltaX * .01;
+
+        rotationX +=
+            deltaY * .01;
+
+
+        rotationX =
+            Math.max(
+                -0.8,
+                Math.min(
+                    0.8,
+                    rotationX
+                )
             );
 
-            robot.rotation.set(
-                0,
-                -0.45,
+
+        previousMouseX =
+            event.clientX;
+
+        previousMouseY =
+            event.clientY;
+    }
+
+
+    function onPointerUp() {
+
+        isDragging = false;
+    }
+
+
+    function onWheel(event) {
+
+        event.preventDefault();
+
+        cameraDistance +=
+            event.deltaY * .005;
+
+        cameraDistance =
+            Math.max(
+                3,
+                Math.min(
+                    12,
+                    cameraDistance
+                )
+            );
+
+
+        const direction =
+            camera.position
+                .clone()
+                .normalize();
+
+
+        camera.position.copy(
+            direction.multiplyScalar(
+                cameraDistance
+            )
+        );
+    }
+
+
+    $("rotateLeft")?.addEventListener(
+        "click",
+        () => {
+            rotationY -= .35;
+        }
+    );
+
+
+    $("rotateRight")?.addEventListener(
+        "click",
+        () => {
+            rotationY += .35;
+        }
+    );
+
+
+    $("resetCamera")?.addEventListener(
+        "click",
+        () => {
+
+            rotationX = 0;
+
+            rotationY = 0;
+
+            cameraDistance = 7;
+
+            if (camera) {
+
+                camera.position.set(
+                    5,
+                    3.5,
+                    6
+                );
+
+            }
+
+        }
+    );
+
+
+    /* =====================================================
+       COMPONENTS
+    ===================================================== */
+
+    function addComponent(
+        type,
+        name,
+        mass,
+        power
+    ) {
+
+        const component = {
+
+            id:
+                Date.now() +
+                Math.random(),
+
+            type,
+
+            name,
+
+            mass:
+                Number(mass),
+
+            power:
+                Number(power)
+        };
+
+
+        components.push(
+            component
+        );
+
+
+        updateAssembly();
+
+        addComponentTo3D(
+            component
+        );
+
+        updateStats();
+
+        showToast(
+            `${name} добавлен в проект`
+        );
+    }
+
+
+    document
+        .querySelectorAll(".add-component")
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    addComponent(
+                        button.dataset.type,
+                        button.dataset.name,
+                        button.dataset.mass,
+                        button.dataset.power
+                    );
+
+                }
+            );
+
+        });
+
+
+    function removeComponent(id) {
+
+        components =
+            components.filter(
+                component =>
+                    component.id !== id
+            );
+
+
+        rebuild3D();
+
+        updateAssembly();
+
+        updateStats();
+
+        showToast(
+            "Компонент удалён"
+        );
+    }
+
+
+    function updateAssembly() {
+
+        const list =
+            $("assemblyList");
+
+        if (!list) return;
+
+
+        if (components.length === 0) {
+
+            list.innerHTML = `
+                <div style="
+                    padding:30px 10px;
+                    text-align:center;
+                    color:#82968d;
+                    font-size:12px;
+                ">
+                    Пока нет добавленных компонентов.
+                    <br><br>
+                    Перейди в «Компоненты».
+                </div>
+            `;
+
+        }
+
+        else {
+
+            list.innerHTML =
+                components.map(component => `
+
+                    <div class="assembly-item">
+
+                        <div>
+                            <strong>
+                                ${escapeHTML(component.name)}
+                            </strong>
+
+                            <small>
+                                ${component.mass} г ·
+                                ${component.power} W
+                            </small>
+                        </div>
+
+                        <button
+                            class="remove-component"
+                            data-id="${component.id}"
+                        >
+                            ×
+                        </button>
+
+                    </div>
+
+                `).join("");
+
+        }
+
+
+        document
+            .querySelectorAll(".remove-component")
+            .forEach(button => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        removeComponent(
+                            Number(
+                                button.dataset.id
+                            )
+                        );
+
+                    }
+                );
+
+            });
+
+
+        const mass =
+            components.reduce(
+                (sum, item) =>
+                    sum + item.mass,
                 0
             );
+
+
+        const assemblyMass =
+            $("assemblyMass");
+
+        if (assemblyMass) {
+
+            assemblyMass.textContent =
+                `${mass} г`;
 
         }
 
     }
-);
 
 
-/* =========================================================
-   COMPONENT SEARCH
-========================================================= */
+    function updateStats() {
 
-const componentSearch =
-    document.getElementById(
-        "componentSearch"
-    );
+        const mass =
+            components.reduce(
+                (sum, item) =>
+                    sum + item.mass,
+                0
+            );
 
-if (componentSearch) {
 
-    componentSearch.addEventListener(
+        const power =
+            components.reduce(
+                (sum, item) =>
+                    sum + item.power,
+                0
+            );
+
+
+        if ($("componentStat")) {
+
+            $("componentStat")
+                .textContent =
+                components.length;
+
+        }
+
+
+        if ($("massStat")) {
+
+            $("massStat")
+                .textContent =
+                `${mass} г`;
+
+        }
+
+
+        if ($("powerStat")) {
+
+            $("powerStat")
+                .textContent =
+                `${power} W`;
+
+        }
+    }
+
+
+    function updateObjectCounter() {
+
+        if (!$("objectCounter")) return;
+
+        const count =
+            robotGroup
+                ? robotGroup.children.length
+                : 0;
+
+
+        $("objectCounter").textContent =
+            `Objects: ${count}`;
+    }
+
+
+    /* =====================================================
+       SEARCH
+    ===================================================== */
+
+    $("componentSearch")?.addEventListener(
         "input",
-        () => {
+        event => {
 
-            const query =
-                componentSearch.value
+            const value =
+                event.target.value
                     .toLowerCase()
                     .trim();
+
 
             document
                 .querySelectorAll(".component-card")
                 .forEach(card => {
 
                     const name =
-                        card.dataset.name;
+                        card.dataset.name
+                            .toLowerCase();
+
 
                     card.style.display =
-                        name.includes(query)
-                            ? "block"
+                        name.includes(value)
+                            ? ""
                             : "none";
 
                 });
@@ -845,481 +1101,561 @@ if (componentSearch) {
         }
     );
 
-}
+
+    /* =====================================================
+       CALCULATOR
+    ===================================================== */
+
+    $("calculate")?.addEventListener(
+        "click",
+        () => {
+
+            const mass =
+                Number(
+                    $("robotMass").value
+                );
+
+            const speed =
+                Number(
+                    $("robotSpeed").value
+                );
+
+            const motorCount =
+                Number(
+                    $("motorCount").value
+                );
+
+            const efficiency =
+                Number(
+                    $("efficiency").value
+                );
 
 
-/* =========================================================
-   ADD COMPONENT
-========================================================= */
-
-let componentCount = 6;
-
-document
-    .querySelectorAll(".add-btn")
-    .forEach(button => {
-
-        button.addEventListener(
-            "click",
-            () => {
-
-                const component =
-                    button.dataset.component;
-
-                componentCount++;
-
-                document
-                    .getElementById(
-                        "componentCount"
-                    )
-                    .textContent =
-                    componentCount;
+            if (
+                mass <= 0 ||
+                speed <= 0 ||
+                motorCount <= 0 ||
+                efficiency <= 0
+            ) {
 
                 showToast(
-                    `${component} добавлен в проект`
+                    "Введите корректные параметры"
                 );
 
+                return;
             }
-        );
-
-    });
 
 
-document
-    .getElementById("addComponent")
-    .addEventListener(
-        "click",
-        () => {
+            /*
+                Упрощённая инженерная модель:
 
-            openPage("components");
+                P = F * v
+
+                F ≈ m * g * rolling resistance
+
+                Для демонстрационного прототипа
+                принимаем коэффициент сопротивления 0.15.
+            */
+
+            const g = 9.81;
+
+            const rollingResistance =
+                .15;
+
+
+            const force =
+                mass *
+                g *
+                rollingResistance;
+
+
+            const mechanicalPower =
+                force *
+                speed;
+
+
+            const requiredPower =
+                mechanicalPower /
+                (efficiency / 100);
+
+
+            const motorPower =
+                requiredPower /
+                motorCount;
+
+
+            const reserve =
+                requiredPower * 1.3;
+
+
+            $("powerResult")
+                .textContent =
+                `${requiredPower.toFixed(1)} W`;
+
+
+            $("motorPowerResult")
+                .textContent =
+                `${motorPower.toFixed(1)} W`;
+
+
+            $("reserveResult")
+                .textContent =
+                `${reserve.toFixed(1)} W`;
+
 
             showToast(
-                "Выберите компонент из каталога"
+                "Расчёт выполнен"
             );
 
         }
     );
 
 
-/* =========================================================
-   ENGINEERING CALCULATOR
-========================================================= */
+    /* =====================================================
+       CODE
+    ===================================================== */
 
-document
-    .getElementById("calculate")
-    .addEventListener(
-        "click",
-        calculateSystem
-    );
-
-
-function calculateSystem() {
-
-    const mass =
-        Number(
-            document.getElementById(
-                "robotMass"
-            ).value
-        );
-
-    const motorPower =
-        Number(
-            document.getElementById(
-                "motorPower"
-            ).value
-        );
-
-    const capacity =
-        Number(
-            document.getElementById(
-                "batteryCapacity"
-            ).value
-        );
-
-    const voltage =
-        Number(
-            document.getElementById(
-                "batteryVoltage"
-            ).value
-        );
-
-
-    /* Two motors */
-
-    const totalPower =
-        motorPower * 2;
-
-
-    /* Battery energy */
-
-    const energy =
-        capacity * voltage;
-
-
-    /* Runtime */
-
-    const runtime =
-        totalPower > 0
-            ? energy / totalPower
-            : 0;
-
-
-    /* Weight force */
-
-    const load =
-        mass * 9.81;
-
-
-    document.getElementById(
-        "totalPower"
-    ).textContent =
-        `${totalPower.toFixed(0)} W`;
-
-
-    document.getElementById(
-        "energy"
-    ).textContent =
-        `${energy.toFixed(1)} Wh`;
-
-
-    document.getElementById(
-        "runtime"
-    ).textContent =
-        `${runtime.toFixed(2)} h`;
-
-
-    document.getElementById(
-        "load"
-    ).textContent =
-        `${load.toFixed(1)} N`;
-
-
-    document.getElementById(
-        "massStat"
-    ).textContent =
-        `${mass.toFixed(2)} кг`;
-
-
-    document.getElementById(
-        "powerStat"
-    ).textContent =
-        `${totalPower.toFixed(0)} W`;
-
-
-    showToast(
-        "Расчёты обновлены"
-    );
-
-}
-
-
-/* =========================================================
-   CODE EDITOR
-========================================================= */
-
-const codeEditor =
-    document.getElementById(
-        "codeEditor"
-    );
-
-
-document
-    .querySelectorAll(".code-snippet")
-    .forEach(button => {
-
-        button.addEventListener(
-            "click",
-            () => {
-
-                const code =
-                    button.dataset.code;
-
-                const start =
-                    codeEditor.selectionStart;
-
-                const end =
-                    codeEditor.selectionEnd;
-
-                const oldValue =
-                    codeEditor.value;
-
-                codeEditor.value =
-                    oldValue.substring(
-                        0,
-                        start
-                    ) +
-                    code +
-                    oldValue.substring(
-                        end
-                    );
-
-                codeEditor.focus();
-
-            }
-        );
-
-    });
-
-
-/* RUN CODE */
-
-document
-    .getElementById("runCode")
-    .addEventListener(
+    $("runCode")?.addEventListener(
         "click",
         () => {
 
-            const terminal =
-                document.getElementById(
-                    "terminal"
-                );
-
-            terminal.innerHTML = `
-                <div>> RoboLab terminal</div>
-                <div>> Compiling robot_control.ino...</div>
-                <div>> Checking syntax...</div>
-                <div>> GPIO configuration: OK</div>
-                <div>> Sensor configuration: OK</div>
-                <div>> Motors configuration: OK</div>
-                <div>> Build completed successfully.</div>
-                <div>> Ready for ESP32 upload.</div>
-            `;
-
-            showToast(
-                "Код успешно проверен"
-            );
-
-        }
-    );
+            const code =
+                $("codeEditor").value;
 
 
-/* =========================================================
-   DIAGNOSTICS
-========================================================= */
+            const output =
+                $("consoleOutput");
 
-document
-    .getElementById("runDiagnostics")
-    .addEventListener(
-        "click",
-        () => {
 
             const status =
-                document.getElementById(
-                    "diagnosticStatus"
-                );
+                $("codeStatus");
+
+
+            if (!code.trim()) {
+
+                status.textContent =
+                    "ERROR";
+
+                status.style.color =
+                    "#ff5f67";
+
+
+                output.innerHTML = `
+                    <div style="color:#ff5f67">
+                        > ERROR: Код пустой
+                    </div>
+                `;
+
+                return;
+            }
+
 
             status.textContent =
-                "RUNNING...";
+                "CHECKING...";
 
-            const rows =
-                document.querySelectorAll(
-                    ".diagnostic-row"
-                );
 
-            rows.forEach(
-                (row, index) => {
+            status.style.color =
+                "#ffd166";
 
-                    setTimeout(
-                        () => {
 
-                            row.style.background =
-                                "rgba(67,230,165,.035)";
+            output.innerHTML = `
+                <div>> Анализ исходного кода...</div>
+            `;
 
-                        },
-                        index * 300
+
+            setTimeout(() => {
+
+                const errors = [];
+
+
+                if (
+                    !code.includes("setup")
+                ) {
+                    errors.push(
+                        "Функция setup() отсутствует"
                     );
-
                 }
-            );
 
 
-            setTimeout(
-                () => {
+                if (
+                    !code.includes("loop")
+                ) {
+                    errors.push(
+                        "Функция loop() отсутствует"
+                    );
+                }
+
+
+                if (
+                    !code.includes(";")
+                ) {
+                    errors.push(
+                        "Не найдены операторы ';'"
+                    );
+                }
+
+
+                if (errors.length > 0) {
 
                     status.textContent =
-                        "DIAGNOSTICS COMPLETE";
+                        "ERROR";
 
-                    showToast(
-                        "Диагностика завершена"
-                    );
+                    status.style.color =
+                        "#ff5f67";
 
-                },
-                1800
-            );
+
+                    output.innerHTML =
+                        errors.map(
+                            error =>
+                                `<div style="color:#ff7777">
+                                    > ERROR: ${error}
+                                </div>`
+                        ).join("");
+
+                    return;
+                }
+
+
+                status.textContent =
+                    "OK";
+
+                status.style.color =
+                    "#39e58c";
+
+
+                output.innerHTML = `
+                    <div>> Parsing...</div>
+                    <div>> setup() found</div>
+                    <div>> loop() found</div>
+                    <div>> Syntax check: PASS</div>
+                    <div>> Arduino API: detected</div>
+                    <div style="color:#39e58c">
+                        > BUILD SUCCESS
+                    </div>
+                `;
+
+
+                showToast(
+                    "Проверка кода успешно завершена"
+                );
+
+            }, 800);
 
         }
     );
 
 
-/* =========================================================
-   SAVE PROJECT
-========================================================= */
+    /* =====================================================
+       DIAGNOSTICS
+    ===================================================== */
 
-document
-    .getElementById("saveProject")
-    .addEventListener(
+    $("runDiagnostics")?.addEventListener(
+        "click",
+        () => {
+
+            const ids = [
+                "diagController",
+                "diagBattery",
+                "diagMotors",
+                "diagSensors",
+                "diagSoftware"
+            ];
+
+
+            ids.forEach(id => {
+
+                const element =
+                    $(id);
+
+                if (!element) return;
+
+                element.textContent =
+                    "CHECKING...";
+
+                element.style.color =
+                    "#ffd166";
+
+            });
+
+
+            setTimeout(() => {
+
+                ids.forEach(id => {
+
+                    const element =
+                        $(id);
+
+                    if (!element) return;
+
+                    element.textContent =
+                        "PASS";
+
+                    element.style.color =
+                        "#39e58c";
+
+                });
+
+
+                showToast(
+                    "Диагностика завершена"
+                );
+
+            }, 1000);
+
+        }
+    );
+
+
+    /* =====================================================
+       SAVE PROJECT
+    ===================================================== */
+
+    function saveProject() {
+
+        const name =
+            $("projectName")
+                ? $("projectName").value
+                : "Autonomous Robot";
+
+
+        const project = {
+
+            name,
+
+            components,
+
+            code:
+                $("codeEditor")
+                    ? $("codeEditor").value
+                    : "",
+
+            savedAt:
+                new Date().toISOString()
+
+        };
+
+
+        localStorage.setItem(
+            "robolab_project",
+            JSON.stringify(project)
+        );
+
+
+        updateDashboardName(name);
+
+        showToast(
+            "Проект сохранён"
+        );
+    }
+
+
+    $("saveProject")?.addEventListener(
         "click",
         saveProject
     );
 
 
-function saveProject() {
+    function loadProject() {
 
-    const project = {
-
-        name:
-            document.getElementById(
-                "projectName"
-            ).textContent,
-
-        components:
-            componentCount,
-
-        code:
-            codeEditor.value,
-
-        robotMass:
-            document.getElementById(
-                "robotMass"
-            ).value,
-
-        motorPower:
-            document.getElementById(
-                "motorPower"
-            ).value,
-
-        batteryCapacity:
-            document.getElementById(
-                "batteryCapacity"
-            ).value,
-
-        batteryVoltage:
-            document.getElementById(
-                "batteryVoltage"
-            ).value,
-
-        savedAt:
-            new Date().toISOString()
-
-    };
+        const saved =
+            localStorage.getItem(
+                "robolab_project"
+            );
 
 
-    localStorage.setItem(
-        "robolabProject",
-        JSON.stringify(project)
+        if (!saved) {
+
+            updateAssembly();
+
+            updateStats();
+
+            return;
+        }
+
+
+        try {
+
+            const project =
+                JSON.parse(saved);
+
+
+            components =
+                Array.isArray(
+                    project.components
+                )
+                    ? project.components
+                    : [];
+
+
+            if ($("projectName")) {
+
+                $("projectName").value =
+                    project.name ||
+                    "Autonomous Robot";
+
+            }
+
+
+            if ($("codeEditor") &&
+                project.code) {
+
+                $("codeEditor").value =
+                    project.code;
+
+            }
+
+
+            updateDashboardName(
+                project.name ||
+                "Autonomous Robot"
+            );
+
+
+            updateAssembly();
+
+            updateStats();
+
+
+        }
+        catch (error) {
+
+            console.error(
+                "Load error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       EXPORT
+    ===================================================== */
+
+    $("exportProject")?.addEventListener(
+        "click",
+        () => {
+
+            const project = {
+
+                name:
+                    $("projectName")?.value ||
+                    "Autonomous Robot",
+
+                components,
+
+                code:
+                    $("codeEditor")?.value ||
+                    "",
+
+                exportedAt:
+                    new Date().toISOString()
+
+            };
+
+
+            const blob =
+                new Blob(
+                    [
+                        JSON.stringify(
+                            project,
+                            null,
+                            2
+                        )
+                    ],
+                    {
+                        type:
+                            "application/json"
+                    }
+                );
+
+
+            const url =
+                URL.createObjectURL(blob);
+
+
+            const link =
+                document.createElement("a");
+
+
+            link.href = url;
+
+            link.download =
+                "robolab-project.json";
+
+
+            link.click();
+
+
+            URL.revokeObjectURL(
+                url
+            );
+
+
+            showToast(
+                "Проект экспортирован"
+            );
+
+        }
     );
 
 
-    showToast(
-        "✓ Проект сохранён в браузере"
+    /* =====================================================
+       PROJECT NAME
+    ===================================================== */
+
+    $("projectName")?.addEventListener(
+        "input",
+        event => {
+
+            updateDashboardName(
+                event.target.value
+            );
+
+        }
     );
 
-}
+
+    function updateDashboardName(name) {
+
+        if (!$("dashboardProjectName")) {
+            return;
+        }
 
 
-/* =========================================================
-   LOAD PROJECT
-========================================================= */
-
-function loadProject() {
-
-    const saved =
-        localStorage.getItem(
-            "robolabProject"
-        );
-
-    if (!saved) {
-        return;
+        $("dashboardProjectName")
+            .textContent =
+            name ||
+            "Autonomous Robot";
     }
 
-    try {
 
-        const project =
-            JSON.parse(saved);
+    /* =====================================================
+       SECURITY HELPER
+    ===================================================== */
 
+    function escapeHTML(value) {
 
-        componentCount =
-            project.components || 6;
-
-
-        document.getElementById(
-            "componentCount"
-        ).textContent =
-            componentCount;
-
-
-        if (project.code) {
-
-            codeEditor.value =
-                project.code;
-
-        }
-
-
-        if (project.robotMass) {
-
-            document.getElementById(
-                "robotMass"
-            ).value =
-                project.robotMass;
-
-        }
-
-
-        if (project.motorPower) {
-
-            document.getElementById(
-                "motorPower"
-            ).value =
-                project.motorPower;
-
-        }
-
-
-        if (project.batteryCapacity) {
-
-            document.getElementById(
-                "batteryCapacity"
-            ).value =
-                project.batteryCapacity;
-
-        }
-
-
-        if (project.batteryVoltage) {
-
-            document.getElementById(
-                "batteryVoltage"
-            ).value =
-                project.batteryVoltage;
-
-        }
-
-    } catch (error) {
-
-        console.error(
-            "Project loading error:",
-            error
-        );
-
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
     }
 
-}
 
+    /* =====================================================
+       START
+    ===================================================== */
 
-/* =========================================================
-   START APPLICATION
-========================================================= */
+    loadProject();
 
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+    initThree();
 
-        initThree();
+    updateAssembly();
 
-        loadProject();
+    updateStats();
 
-        calculateSystem();
-
-    }
-);
-```
+});
