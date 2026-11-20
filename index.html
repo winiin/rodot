@@ -1,786 +1,130 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>RoboLab — Robotics Engineering Platform</title>
-
-    <link rel="stylesheet" href="style.css">
-
-    <!-- Three.js -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#08120f">
+<title>ROBO-2 — Environmental Rover Control</title>
+<style>
+:root{--bg:#07100d;--panel:#0d1914;--panel2:#11221a;--line:#20372b;--green:#54e39a;--mint:#a5f2c6;--muted:#8da397;--white:#eef8f1;--blue:#70b8ff;--amber:#f2c36d;--red:#ff7474}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% -10%,#183b2a 0,transparent 38%),var(--bg);color:var(--white);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}button{font:inherit;cursor:pointer}.shell{display:grid;grid-template-columns:248px 1fr;min-height:100vh}.side{position:sticky;top:0;height:100vh;padding:25px 17px;background:#09140f;border-right:1px solid var(--line);display:flex;flex-direction:column}.brand{display:flex;align-items:center;gap:12px;padding:0 8px 30px}.brand-mark{width:42px;height:42px;border-radius:13px;background:linear-gradient(145deg,#8affbd,#2eaa70);display:grid;place-items:center;color:#062012;font-weight:950;font-size:22px;box-shadow:0 8px 30px #35d88730}.brand b{font-size:18px;letter-spacing:1px}.brand small{display:block;color:var(--muted);font-size:9px;letter-spacing:2.4px;margin-top:3px}.nav-label{font-size:9px;letter-spacing:1.8px;color:#63796d;padding:8px 12px 10px}.nav{display:grid;gap:5px}.nav button{border:1px solid transparent;background:transparent;color:#9db0a4;text-align:left;padding:12px 13px;border-radius:10px;display:flex;align-items:center;gap:12px;font-size:13px}.nav button span{width:20px;text-align:center;font-size:16px}.nav button.active,.nav button:hover{background:#13271d;border-color:#284b36;color:var(--green)}.side-bottom{margin-top:auto}.connection-mini{border:1px solid var(--line);background:#0d1b14;padding:13px;border-radius:12px;font-size:11px;color:var(--muted);line-height:1.6}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#68796e;margin-right:7px}.dot.on{background:var(--green);box-shadow:0 0 10px #54e39a}.side-foot{font-size:10px;color:#61756a;padding:15px 5px 0}.main{min-width:0;padding:0 32px 40px}.topbar{height:83px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);gap:12px}.eyebrow{font-size:9px;color:var(--green);letter-spacing:2px;margin-bottom:5px}.topbar h1{font-size:21px;margin:0}.top-right{display:flex;align-items:center;gap:10px}.pill{border:1px solid var(--line);border-radius:30px;padding:8px 12px;color:var(--muted);font-size:11px}.pill strong{color:var(--green);font-weight:600}.btn{border:1px solid var(--line);background:#13231a;color:var(--white);border-radius:9px;padding:10px 14px;font-size:12px;transition:.18s}.btn:hover{border-color:#4a946a;transform:translateY(-1px)}.btn.primary{background:var(--green);color:#062012;border-color:var(--green);font-weight:800}.btn.danger{color:#ff9999;border-color:#613a37;background:#281715}.page{display:none;padding-top:25px}.page.active{display:block}.hero{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:27px 30px;border:1px solid #244532;border-radius:17px;background:radial-gradient(circle at 84% 40%,#28613d70,transparent 32%),linear-gradient(120deg,#102219,#0b1711);overflow:hidden}.hero-tag{display:inline-flex;gap:7px;align-items:center;color:var(--green);font-size:9px;letter-spacing:1.7px;border:1px solid #2b6444;padding:7px 10px;border-radius:30px}.hero h2{font-size:clamp(27px,4vw,42px);line-height:1.08;letter-spacing:-1.7px;margin:15px 0 10px}.hero h2 em{font-style:normal;color:var(--green)}.hero p{color:var(--muted);font-size:12px;line-height:1.7;max-width:550px;margin:0}.hero-actions{display:flex;gap:9px;margin-top:19px;flex-wrap:wrap}.rover-art{width:220px;max-width:30%;filter:drop-shadow(0 12px 30px #0008)}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:15px 0}.stat,.card{background:linear-gradient(145deg,#102018,#0c1712);border:1px solid var(--line);border-radius:13px}.stat{padding:16px}.stat small{font-size:9px;color:var(--muted);letter-spacing:1.1px}.stat strong{display:block;font-size:25px;margin:8px 0 3px}.stat em{font-size:10px;color:var(--muted);font-style:normal}.green{color:var(--green)}.blue{color:var(--blue)}.amber{color:var(--amber)}.grid-main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(270px,.85fr);gap:14px}.card-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}.card-head h3{font-size:13px;margin:0}.card-head p{font-size:10px;color:var(--muted);margin:4px 0 0}.map-wrap{padding:13px}.map{position:relative;min-height:350px;border:1px solid #244333;border-radius:10px;overflow:hidden;background-color:#0a1711;background-image:linear-gradient(#25443144 1px,transparent 1px),linear-gradient(90deg,#25443144 1px,transparent 1px);background-size:32px 32px}.map svg{width:100%;height:350px;display:block}.map-label{position:absolute;top:12px;left:13px;font-size:9px;letter-spacing:1px;color:#9bb5a4;background:#0a1711d9;padding:7px 9px;border:1px solid #294735;border-radius:7px}.map-legend{display:flex;gap:14px;flex-wrap:wrap;padding:12px 3px 2px;color:var(--muted);font-size:10px}.legend-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}.map-controls{display:flex;gap:7px}.sensor-list{padding:4px 16px 14px}.sensor-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #1b3024}.sensor-row:last-child{border:0}.sensor-name{display:flex;align-items:center;gap:10px}.sensor-icon{width:34px;height:34px;border-radius:10px;background:#183022;display:grid;place-items:center;font-size:16px}.sensor-name b{display:block;font-size:11px}.sensor-name small{display:block;color:var(--muted);font-size:9px;margin-top:3px}.sensor-value{text-align:right;font-size:16px;font-weight:750}.sensor-value small{display:block;color:var(--muted);font-size:9px;font-weight:400;margin-top:3px}.section-title{display:flex;justify-content:space-between;align-items:end;margin:25px 0 13px}.section-title h2{font-size:18px;margin:0}.section-title p{font-size:10px;color:var(--muted);margin:5px 0 0}.sensor-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.sensor-card{padding:17px}.sensor-card .top{display:flex;justify-content:space-between;align-items:center}.sensor-card h3{font-size:12px;margin:0}.sensor-card p{color:var(--muted);font-size:10px;margin:5px 0 15px}.big-reading{font-size:27px;font-weight:750}.big-reading small{font-size:11px;color:var(--muted);font-weight:400}.bar{height:5px;background:#20372b;border-radius:8px;margin-top:13px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#35b879,#8bf0b4);border-radius:8px}.tag-demo{font-size:9px;color:var(--amber);border:1px solid #69532d;border-radius:20px;padding:5px 8px}.subnote{font-size:10px;color:var(--muted);line-height:1.6;padding:12px 15px;border-top:1px solid var(--line)}.control-layout{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.control-pad{padding:20px;display:grid;grid-template-columns:repeat(3,1fr);gap:9px;max-width:360px;margin:auto}.control-pad button{height:60px;font-size:20px}.control-pad .stop{background:#321c19;border-color:#74413b;color:#ff9b8f}.control-pad .empty{visibility:hidden}.gesture{padding:20px;text-align:center}.hand{font-size:54px;margin:8px}.gesture-state{font-size:13px;color:var(--green);margin:10px}.gesture p{font-size:10px;color:var(--muted);line-height:1.7}.history-table{width:100%;border-collapse:collapse;font-size:11px}.history-table th,.history-table td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line)}.history-table th{color:var(--muted);font-weight:500;font-size:9px;letter-spacing:1px}.status-ok{color:var(--green)}.status-wait{color:var(--amber)}.chart-box{padding:18px;height:240px}.chart-box canvas{width:100%;height:100%}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.settings-card{padding:18px}.settings-card h3{font-size:13px;margin:0 0 8px}.settings-card p{font-size:11px;color:var(--muted);line-height:1.7}.toast{position:fixed;bottom:22px;right:22px;background:#173423;border:1px solid #3d8158;color:var(--mint);padding:12px 16px;border-radius:10px;font-size:12px;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none}.toast.show{opacity:1;transform:none}.mobile-menu{display:none}
+@media(max-width:1050px){.shell{grid-template-columns:205px 1fr}.side{width:205px}.main{padding:0 20px 30px}.grid-main{grid-template-columns:1fr}.rover-art{width:170px}.stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:720px){.shell{display:block}.side{position:relative;width:100%;height:auto;padding:13px 14px;border-right:0;border-bottom:1px solid var(--line)}.brand{padding:0 4px 12px}.nav-label,.side-bottom{display:none}.nav{display:flex;overflow-x:auto;padding-bottom:2px}.nav button{white-space:nowrap;padding:9px 11px;font-size:11px}.main{padding:0 13px 28px}.topbar{height:70px}.topbar h1{font-size:17px}.top-right .pill{display:none}.hero{padding:21px}.rover-art{display:none}.stats{gap:8px}.stat{padding:13px}.stat strong{font-size:21px}.sensor-cards{grid-template-columns:1fr}.control-layout,.settings-grid{grid-template-columns:1fr}.map{min-height:280px}.map svg{height:280px}}
+</style>
 </head>
-
 <body>
-
-<div class="app">
-
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-
-        <div class="logo">
-            <div class="logo-icon">R</div>
-            <div>
-                <strong>RoboLab</strong>
-                <span>ENGINEERING</span>
-            </div>
-        </div>
-
-        <nav>
-
-            <button class="nav-btn active" data-page="dashboard">
-                <span>⌂</span>
-                Главная
-            </button>
-
-            <button class="nav-btn" data-page="builder">
-                <span>◈</span>
-                3D Сборка
-            </button>
-
-            <button class="nav-btn" data-page="components">
-                <span>▦</span>
-                Компоненты
-            </button>
-
-            <button class="nav-btn" data-page="electronics">
-                <span>⚡</span>
-                Электроника
-            </button>
-
-            <button class="nav-btn" data-page="code">
-                <span>&lt;/&gt;</span>
-                RoboCode
-            </button>
-
-            <button class="nav-btn" data-page="calculator">
-                <span>Σ</span>
-                Расчёты
-            </button>
-
-            <button class="nav-btn" data-page="testing">
-                <span>✓</span>
-                Диагностика
-            </button>
-
-            <button class="nav-btn" data-page="documentation">
-                <span>▤</span>
-                Документация
-            </button>
-
-        </nav>
-
-        <div class="sidebar-bottom">
-            <div class="system-status">
-                <i></i>
-                Система готова
-            </div>
-
-            <button id="saveProject" class="save-btn">
-                💾 Сохранить проект
-            </button>
-        </div>
-
-    </aside>
-
-
-    <!-- MAIN -->
-    <main class="main">
-
-        <header class="topbar">
-
-            <div>
-                <div class="breadcrumbs">ROBOTICS / ENGINEERING</div>
-                <h1 id="pageTitle">Главная</h1>
-            </div>
-
-            <div class="top-actions">
-                <span id="clock"></span>
-
-                <button id="exportProject" class="small-btn">
-                    Экспорт
-                </button>
-            </div>
-
-        </header>
-
-
-        <!-- ================= DASHBOARD ================= -->
-
-        <section id="dashboard" class="page active">
-
-            <div class="hero">
-
-                <div>
-                    <div class="badge">ROBOTICS ENGINEERING PLATFORM</div>
-
-                    <h2>
-                        Создавай роботов.<br>
-                        <span>Проектируй. Тестируй.</span>
-                    </h2>
-
-                    <p>
-                        Единая рабочая среда для проектирования,
-                        программирования и тестирования робототехнических систем.
-                    </p>
-
-                    <div class="hero-buttons">
-
-                        <button class="primary-btn" data-open="builder">
-                            Открыть 3D-сборку
-                        </button>
-
-                        <button class="secondary-btn" data-open="code">
-                            Открыть RoboCode
-                        </button>
-
-                    </div>
-                </div>
-
-                <div class="hero-robot">
-                    <div class="robot-circle">
-                        <div class="robot-symbol">🤖</div>
-                    </div>
-                </div>
-
-            </div>
-
-
-            <div class="stats-grid">
-
-                <div class="stat-card">
-                    <span>КОМПОНЕНТОВ</span>
-                    <strong id="componentStat">0</strong>
-                    <small>в текущем проекте</small>
-                </div>
-
-                <div class="stat-card">
-                    <span>МАССА</span>
-                    <strong id="massStat">0 г</strong>
-                    <small>расчётная</small>
-                </div>
-
-                <div class="stat-card">
-                    <span>МОЩНОСТЬ</span>
-                    <strong id="powerStat">0 W</strong>
-                    <small>система</small>
-                </div>
-
-                <div class="stat-card">
-                    <span>СТАТУС</span>
-                    <strong class="green">READY</strong>
-                    <small>система работает</small>
-                </div>
-
-            </div>
-
-
-            <div class="dashboard-grid">
-
-                <div class="panel">
-                    <div class="panel-header">
-                        <div>
-                            <h3>Рабочий проект</h3>
-                            <p>Текущая конфигурация робота</p>
-                        </div>
-                    </div>
-
-                    <div class="project-info">
-
-                        <div class="project-icon">🤖</div>
-
-                        <div>
-                            <strong id="dashboardProjectName">
-                                Autonomous Robot
-                            </strong>
-
-                            <p>
-                                Мобильная робототехническая платформа
-                            </p>
-                        </div>
-
-                    </div>
-
-                    <button class="secondary-btn full" data-open="builder">
-                        Продолжить проект →
-                    </button>
-
-                </div>
-
-
-                <div class="panel">
-                    <div class="panel-header">
-                        <div>
-                            <h3>Состояние системы</h3>
-                            <p>Автоматическая проверка</p>
-                        </div>
-                    </div>
-
-                    <div class="check-list">
-
-                        <div>
-                            <span>Механическая система</span>
-                            <b class="ok">OK</b>
-                        </div>
-
-                        <div>
-                            <span>Электропитание</span>
-                            <b class="ok">OK</b>
-                        </div>
-
-                        <div>
-                            <span>Контроллер</span>
-                            <b class="ok">OK</b>
-                        </div>
-
-                        <div>
-                            <span>Программное обеспечение</span>
-                            <b class="ok">OK</b>
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= BUILDER ================= -->
-
-        <section id="builder" class="page">
-
-            <div class="page-heading">
-                <div>
-                    <h2>3D Robot Builder</h2>
-                    <p>Собери конструкцию робота и управляй её конфигурацией.</p>
-                </div>
-
-                <input
-                    id="projectName"
-                    class="project-name"
-                    value="Autonomous Robot"
-                    placeholder="Название проекта"
-                >
-            </div>
-
-
-            <div class="builder-layout">
-
-                <div class="panel viewer-panel">
-
-                    <div class="viewer-toolbar">
-
-                        <div>
-                            <strong>3D VIEW</strong>
-                            <span>Drag / Scroll</span>
-                        </div>
-
-                        <div>
-                            <button id="rotateLeft">↶</button>
-                            <button id="resetCamera">⟳</button>
-                            <button id="rotateRight">↷</button>
-                        </div>
-
-                    </div>
-
-                    <div id="threeContainer"></div>
-
-                    <div class="viewer-info">
-                        <span>● 3D ENGINE ONLINE</span>
-                        <span id="objectCounter">Objects: 3</span>
-                    </div>
-
-                </div>
-
-
-                <div class="panel assembly-panel">
-
-                    <div class="panel-header">
-                        <div>
-                            <h3>Сборка</h3>
-                            <p>Компоненты проекта</p>
-                        </div>
-                    </div>
-
-                    <div id="assemblyList" class="assembly-list"></div>
-
-                    <div class="assembly-total">
-                        <span>Общая масса</span>
-                        <strong id="assemblyMass">0 г</strong>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= COMPONENTS ================= -->
-
-        <section id="components" class="page">
-
-            <div class="page-heading">
-                <div>
-                    <h2>Каталог компонентов</h2>
-                    <p>Добавляй реальные элементы в конструкцию робота.</p>
-                </div>
-
-                <input
-                    id="componentSearch"
-                    class="search"
-                    placeholder="🔎 Поиск компонента..."
-                >
-            </div>
-
-
-            <div id="componentGrid" class="component-grid">
-
-                <article class="component-card" data-name="Arduino Uno">
-                    <div class="component-image arduino">ARDUINO</div>
-                    <h3>Arduino Uno</h3>
-                    <p>Микроконтроллер</p>
-                    <div class="component-meta">
-                        <span>25 г</span>
-                        <span>5 W</span>
-                    </div>
-                    <button
-                        class="primary-btn add-component"
-                        data-type="arduino"
-                        data-name="Arduino Uno"
-                        data-mass="25"
-                        data-power="5"
-                    >
-                        + Добавить
-                    </button>
-                </article>
-
-
-                <article class="component-card" data-name="ESP32">
-                    <div class="component-image esp">ESP32</div>
-                    <h3>ESP32</h3>
-                    <p>Wi-Fi / Bluetooth контроллер</p>
-                    <div class="component-meta">
-                        <span>12 г</span>
-                        <span>3 W</span>
-                    </div>
-                    <button
-                        class="primary-btn add-component"
-                        data-type="esp"
-                        data-name="ESP32"
-                        data-mass="12"
-                        data-power="3"
-                    >
-                        + Добавить
-                    </button>
-                </article>
-
-
-                <article class="component-card" data-name="DC Motor">
-                    <div class="component-image motor">MOTOR</div>
-                    <h3>DC Motor</h3>
-                    <p>Мотор-редуктор</p>
-                    <div class="component-meta">
-                        <span>80 г</span>
-                        <span>18 W</span>
-                    </div>
-                    <button
-                        class="primary-btn add-component"
-                        data-type="motor"
-                        data-name="DC Motor"
-                        data-mass="80"
-                        data-power="18"
-                    >
-                        + Добавить
-                    </button>
-                </article>
-
-
-                <article class="component-card" data-name="Ultrasonic Sensor">
-                    <div class="component-image sensor">SENSOR</div>
-                    <h3>Ultrasonic Sensor</h3>
-                    <p>Датчик расстояния</p>
-                    <div class="component-meta">
-                        <span>10 г</span>
-                        <span>1 W</span>
-                    </div>
-                    <button
-                        class="primary-btn add-component"
-                        data-type="sensor"
-                        data-name="Ultrasonic Sensor"
-                        data-mass="10"
-                        data-power="1"
-                    >
-                        + Добавить
-                    </button>
-                </article>
-
-
-                <article class="component-card" data-name="Camera">
-                    <div class="component-image camera">CAM</div>
-                    <h3>Camera Module</h3>
-                    <p>Камера компьютерного зрения</p>
-                    <div class="component-meta">
-                        <span>30 г</span>
-                        <span>4 W</span>
-                    </div>
-                    <button
-                        class="primary-btn add-component"
-                        data-type="camera"
-                        data-name="Camera Module"
-                        data-mass="30"
-                        data-power="4"
-                    >
-                        + Добавить
-                    </button>
-                </article>
-
-
-                <article class="component-card" data-name="Battery">
-                    <div class="component-image battery">LiPo</div>
-                    <h3>LiPo Battery</h3>
-                    <p>Источник питания</p>
-                    <div class="component-meta">
-                        <span>150 г</span>
-                        <span>50 W</span>
-                    </div>
-                    <button
-                        class="primary-btn add-component"
-                        data-type="battery"
-                        data-name="LiPo Battery"
-                        data-mass="150"
-                        data-power="50"
-                    >
-                        + Добавить
-                    </button>
-                </article>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= ELECTRONICS ================= -->
-
-        <section id="electronics" class="page">
-
-            <div class="page-heading">
-                <div>
-                    <h2>Электронная схема</h2>
-                    <p>Визуальная структура подключения компонентов.</p>
-                </div>
-            </div>
-
-
-            <div class="panel schematic">
-
-                <div class="wire"></div>
-
-                <div class="node battery-node">
-                    <strong>🔋</strong>
-                    <span>BATTERY</span>
-                    <small>12V</small>
-                </div>
-
-                <div class="node controller-node">
-                    <strong>◉</strong>
-                    <span>CONTROLLER</span>
-                    <small>Arduino / ESP32</small>
-                </div>
-
-                <div class="node motor-node">
-                    <strong>⚙</strong>
-                    <span>MOTORS</span>
-                    <small>M1 / M2</small>
-                </div>
-
-                <div class="node sensor-node">
-                    <strong>◌</strong>
-                    <span>SENSORS</span>
-                    <small>Distance / Camera</small>
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= CODE ================= -->
-
-        <section id="code" class="page">
-
-            <div class="page-heading">
-                <div>
-                    <h2>RoboCode IDE</h2>
-                    <p>Пиши и проверяй код управления роботом.</p>
-                </div>
-
-                <button id="runCode" class="primary-btn">
-                    ▶ Запустить проверку
-                </button>
-            </div>
-
-
-            <div class="code-layout">
-
-                <div class="panel code-panel">
-
-                    <div class="editor-top">
-                        <span>main.cpp</span>
-                        <span id="codeStatus">READY</span>
-                    </div>
-
-                    <textarea id="codeEditor" spellcheck="false">
-#include <Arduino.h>
-
-int motorLeft = 5;
-int motorRight = 6;
-
-void setup() {
-    pinMode(motorLeft, OUTPUT);
-    pinMode(motorRight, OUTPUT);
-
-    Serial.begin(9600);
-}
-
-void loop() {
-
-    digitalWrite(motorLeft, HIGH);
-    digitalWrite(motorRight, HIGH);
-
-    delay(1000);
-
-    digitalWrite(motorLeft, LOW);
-    digitalWrite(motorRight, LOW);
-
-    delay(1000);
-}</textarea>
-
-                </div>
-
-
-                <div class="panel console">
-
-                    <div class="editor-top">
-                        <span>CONSOLE</span>
-                        <span>LIVE</span>
-                    </div>
-
-                    <div id="consoleOutput">
-                        <div>> RoboCode initialized</div>
-                        <div>> Arduino environment detected</div>
-                        <div>> Waiting for execution...</div>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= CALCULATOR ================= -->
-
-        <section id="calculator" class="page">
-
-            <div class="page-heading">
-                <div>
-                    <h2>Engineering Calculator</h2>
-                    <p>Базовые расчёты для проектирования робота.</p>
-                </div>
-            </div>
-
-
-            <div class="calculator-grid">
-
-                <div class="panel calculator-card">
-
-                    <h3>Параметры робота</h3>
-
-                    <label>
-                        Масса робота (кг)
-                        <input id="robotMass" type="number" value="2" min="0">
-                    </label>
-
-                    <label>
-                        Желаемая скорость (м/с)
-                        <input id="robotSpeed" type="number" value="1" min="0">
-                    </label>
-
-                    <label>
-                        Количество моторов
-                        <input id="motorCount" type="number" value="2" min="1">
-                    </label>
-
-                    <label>
-                        КПД системы (%)
-                        <input id="efficiency" type="number" value="80" min="1" max="100">
-                    </label>
-
-                    <button id="calculate" class="primary-btn full">
-                        Рассчитать
-                    </button>
-
-                </div>
-
-
-                <div class="panel result-card">
-
-                    <h3>Результат</h3>
-
-                    <div class="result-row">
-                        <span>Необходимая мощность</span>
-                        <strong id="powerResult">—</strong>
-                    </div>
-
-                    <div class="result-row">
-                        <span>Мощность на мотор</span>
-                        <strong id="motorPowerResult">—</strong>
-                    </div>
-
-                    <div class="result-row">
-                        <span>Рекомендуемый запас</span>
-                        <strong id="reserveResult">—</strong>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= TESTING ================= -->
-
-        <section id="testing" class="page">
-
-            <div class="page-heading">
-                <div>
-                    <h2>Диагностика</h2>
-                    <p>Проверка компонентов и программной части.</p>
-                </div>
-
-                <button id="runDiagnostics" class="primary-btn">
-                    Запустить диагностику
-                </button>
-            </div>
-
-
-            <div class="diagnostics">
-
-                <div class="diagnostic-item">
-                    <div>
-                        <strong>Контроллер</strong>
-                        <span>Arduino / ESP32</span>
-                    </div>
-                    <b id="diagController">READY</b>
-                </div>
-
-                <div class="diagnostic-item">
-                    <div>
-                        <strong>Питание</strong>
-                        <span>Battery system</span>
-                    </div>
-                    <b id="diagBattery">READY</b>
-                </div>
-
-                <div class="diagnostic-item">
-                    <div>
-                        <strong>Моторы</strong>
-                        <span>Drive system</span>
-                    </div>
-                    <b id="diagMotors">READY</b>
-                </div>
-
-                <div class="diagnostic-item">
-                    <div>
-                        <strong>Датчики</strong>
-                        <span>Sensor system</span>
-                    </div>
-                    <b id="diagSensors">READY</b>
-                </div>
-
-                <div class="diagnostic-item">
-                    <div>
-                        <strong>Программа</strong>
-                        <span>RoboCode</span>
-                    </div>
-                    <b id="diagSoftware">READY</b>
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= DOCUMENTATION ================= -->
-
-        <section id="documentation" class="page">
-
-            <div class="page-heading">
-                <div>
-                    <h2>Документация</h2>
-                    <p>Рабочая база знаний проекта.</p>
-                </div>
-            </div>
-
-
-            <div class="docs-grid">
-
-                <article class="doc-card">
-                    <span>01</span>
-                    <h3>Архитектура робота</h3>
-                    <p>
-                        Контроллер, питание, привод, датчики
-                        и программное управление.
-                    </p>
-                </article>
-
-                <article class="doc-card">
-                    <span>02</span>
-                    <h3>Электроника</h3>
-                    <p>
-                        Основные принципы подключения
-                        контроллеров и исполнительных механизмов.
-                    </p>
-                </article>
-
-                <article class="doc-card">
-                    <span>03</span>
-                    <h3>Программирование</h3>
-                    <p>
-                        Arduino C++, управление моторами,
-                        датчиками и автономным поведением.
-                    </p>
-                </article>
-
-                <article class="doc-card">
-                    <span>04</span>
-                    <h3>Тестирование</h3>
-                    <p>
-                        Проверка питания, сенсоров,
-                        приводов и программного обеспечения.
-                    </p>
-                </article>
-
-            </div>
-
-        </section>
-
-    </main>
-
+<div class="shell">
+<aside class="side">
+  <div class="brand"><div class="brand-mark">R2</div><div><b>ROBO-2</b><small>FIELD RESEARCH SYSTEM</small></div></div>
+  <div class="nav-label">WORKSPACE</div>
+  <nav class="nav">
+    <button class="active" data-page="overview"><span>⌂</span>Обзор</button>
+    <button data-page="mapPage"><span>⌖</span>Карта маршрута</button>
+    <button data-page="sensors"><span>⌁</span>Датчики</button>
+    <button data-page="control"><span>✣</span>Управление</button>
+    <button data-page="history"><span>◷</span>История</button>
+    <button data-page="about"><span>ⓘ</span>О проекте</button>
+  </nav>
+  <div class="side-bottom">
+    <div class="connection-mini"><div><span class="dot" id="sideDot"></span><span id="sideConnection">Робот не подключён</span></div><div id="sideMode">Ожидание соединения</div></div>
+    <div class="side-foot">ROBO-2 · Environmental Rover<br>Control interface v1.0</div>
+  </div>
+</aside>
+<main class="main">
+<header class="topbar"><div><div class="eyebrow">ROBOTICS / ENVIRONMENTAL MONITORING</div><h1 id="pageTitle">Панель мониторинга</h1></div><div class="top-right"><div class="pill"><span class="dot" id="topDot"></span><span id="topConnection">OFFLINE</span></div><button class="btn primary" id="connectBtn">Подключить Bluetooth</button></div></header>
+
+<section class="page active" id="overview">
+  <div class="hero">
+    <div><span class="hero-tag"><span class="dot on"></span> FIELD ROBOT · TRACKED PLATFORM</span><h2>Исследуй среду.<br><em>Изучай каждый метр.</em></h2><p>ROBO-2 — гусеничный робот для исследования почвы, воздуха и воды. Управление движением выполняется жестами руки через Bluetooth, а результаты измерений отображаются на единой панели.</p><div class="hero-actions"><button class="btn primary" data-open="mapPage">Открыть карту маршрута</button><button class="btn" data-open="sensors">Показатели датчиков</button></div></div>
+    <svg class="rover-art" viewBox="0 0 250 170" role="img" aria-label="Схематичное изображение гусеничного робота"><defs><linearGradient id="track" x2="0" y2="1"><stop stop-color="#63776b"/><stop offset="1" stop-color="#17251d"/></linearGradient><linearGradient id="body" x2="1" y2="1"><stop stop-color="#8cf0b4"/><stop offset="1" stop-color="#26784b"/></linearGradient></defs><rect x="16" y="112" width="218" height="39" rx="19" fill="url(#track)" stroke="#91a99a" stroke-width="2"/><rect x="26" y="120" width="198" height="22" rx="11" fill="#0a1510"/><g fill="#35483c" stroke="#8aa092" stroke-width="1"><circle cx="45" cy="131" r="8"/><circle cx="75" cy="131" r="8"/><circle cx="105" cy="131" r="8"/><circle cx="135" cy="131" r="8"/><circle cx="165" cy="131" r="8"/><circle cx="195" cy="131" r="8"/></g><path d="M45 106 L62 65 Q68 55 82 55 H172 Q187 55 194 69 L210 106Z" fill="url(#body)" stroke="#b2ffd0" stroke-width="2"/><rect x="88" y="35" width="70" height="26" rx="5" fill="#1b3326" stroke="#65db98"/><rect x="106" y="22" width="33" height="14" rx="4" fill="#72e6a2"/><circle cx="177" cy="78" r="8" fill="#c3f8d8"/><circle cx="177" cy="78" r="3" fill="#143b27"/><path d="M120 21V8 M116 8H124" stroke="#8cf0b4" stroke-width="2" stroke-linecap="round"/></svg>
+  </div>
+  <div class="stats">
+    <div class="stat"><small>СОЕДИНЕНИЕ</small><strong class="amber" id="connectionStat">OFFLINE</strong><em id="connectionHint">Ожидание Bluetooth</em></div>
+    <div class="stat"><small>ПРОЙДЕНО</small><strong id="distanceStat">0.0 м</strong><em>По данным маршрута</em></div>
+    <div class="stat"><small>ТОЧКИ АНАЛИЗА</small><strong id="samplesStat">0</strong><em>За текущую сессию</em></div>
+    <div class="stat"><small>АККУМУЛЯТОР</small><strong id="batteryStat">—</strong><em id="batteryHint">Нет телеметрии</em></div>
+  </div>
+  <div class="grid-main">
+    <div class="card"><div class="card-head"><div><h3>Карта передвижения</h3><p>Схема исследуемого участка · положение робота</p></div><div class="map-controls"><button class="btn" data-open="mapPage">Развернуть ↗</button></div></div><div class="map-wrap"><div class="map" id="miniMap"><div class="map-label">FIELD MAP / LIVE POSITION</div><svg viewBox="0 0 700 350" preserveAspectRatio="none"><defs><pattern id="fieldgrid" width="35" height="35" patternUnits="userSpaceOnUse"><path d="M35 0H0V35" fill="none" stroke="#294b36" stroke-width="1" opacity=".55"/></pattern></defs><rect width="700" height="350" fill="url(#fieldgrid)"/><path d="M35 280 Q130 235 195 270 T350 245 T500 260 T670 220" stroke="#2b5b3c" stroke-width="25" opacity=".18" fill="none"/><path d="M40 70 Q130 110 220 75 T400 100 T660 65 M65 315 Q170 285 275 310 T500 295 T680 320" stroke="#355b43" stroke-width="2" stroke-dasharray="5 7" fill="none"/><path id="routeLine" d="" fill="none" stroke="#58e69a" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 6"/><g id="mapPoints"></g><g id="roverMarker" transform="translate(90 250)"><circle r="17" fill="#54e39a" opacity=".18"/><circle r="8" fill="#54e39a" stroke="#e4ffed" stroke-width="2"/><path d="M0 -23V-12" stroke="#c8ffdc" stroke-width="2"/></g></svg></div><div class="map-legend"><span><i class="legend-dot" style="background:#54e39a"></i>Робот</span><span><i class="legend-dot" style="background:#70b8ff"></i>Точка анализа</span><span><i class="legend-dot" style="background:#718277"></i>Маршрут</span></div></div></div>
+    <div class="card"><div class="card-head"><div><h3>Последние показатели</h3><p>Пример отображения данных датчиков</p></div><span class="tag-demo">DEMO DATA</span></div><div class="sensor-list">
+      <div class="sensor-row"><div class="sensor-name"><div class="sensor-icon">🌱</div><div><b>Почва</b><small>Влажность</small></div></div><div class="sensor-value green" id="soilMini">42%<small>пример</small></div></div>
+      <div class="sensor-row"><div class="sensor-name"><div class="sensor-icon">🌬</div><div><b>Воздух</b><small>Температура</small></div></div><div class="sensor-value blue" id="airMini">23.4°C<small>пример</small></div></div>
+      <div class="sensor-row"><div class="sensor-name"><div class="sensor-icon">💧</div><div><b>Вода</b><small>Температура</small></div></div><div class="sensor-value blue" id="waterMini">18.6°C<small>пример</small></div></div>
+    </div><div class="subnote">Пока робот не передаёт телеметрию, здесь показаны только демонстрационные значения.</div></div>
+  </div>
+</section>
+
+<section class="page" id="mapPage">
+  <div class="section-title"><div><h2>Карта маршрута</h2><p>Отслеживание движения и мест проведения замеров</p></div><div><button class="btn" id="resetRoute">Сбросить маршрут</button></div></div>
+  <div class="card"><div class="card-head"><div><h3>Исследуемая территория</h3><p>Схематическая карта участка, не GPS-карта</p></div><span class="tag-demo" id="mapMode">SIMULATION / DEMO</span></div><div class="map-wrap"><div class="map"><div class="map-label">ROBO-2 / FIELD GRID</div><svg viewBox="0 0 700 350" preserveAspectRatio="none"><defs><pattern id="biggrid" width="35" height="35" patternUnits="userSpaceOnUse"><path d="M35 0H0V35" fill="none" stroke="#294b36" stroke-width="1" opacity=".6"/></pattern></defs><rect width="700" height="350" fill="url(#biggrid)"/><path d="M0 270 Q90 230 180 260 T350 240 T520 265 T700 210" stroke="#2b5b3c" stroke-width="40" opacity=".13" fill="none"/><path d="M25 35 Q130 80 230 45 T440 75 T675 35 M15 325 Q130 280 260 315 T500 290 T690 315" stroke="#355b43" stroke-width="2" stroke-dasharray="5 8" fill="none"/><path d="M75 130 L625 130 M75 220 L625 220" stroke="#254333" stroke-width="1" stroke-dasharray="3 8"/><path id="routeLineLarge" d="" fill="none" stroke="#54e39a" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 6"/><g id="mapPointsLarge"></g><g id="roverMarkerLarge" transform="translate(90 250)"><circle r="20" fill="#54e39a" opacity=".18"/><circle r="9" fill="#54e39a" stroke="#e4ffed" stroke-width="2"/><path d="M0 -27V-13" stroke="#c8ffdc" stroke-width="2"/></g></svg></div><div class="map-legend"><span><i class="legend-dot" style="background:#54e39a"></i>Положение робота</span><span><i class="legend-dot" style="background:#70b8ff"></i>Точка анализа</span><span><i class="legend-dot" style="background:#718277"></i>Траектория</span></div></div><div class="subnote">Демонстрационная карта. Реальные координаты появятся после подключения источника позиционирования и передачи координат от робота.</div></div>
+</section>
+
+<section class="page" id="sensors">
+  <div class="section-title"><div><h2>Экологические показатели</h2><p>Почва · воздух · вода</p></div><span class="tag-demo" id="sensorMode">DEMO DATA — НЕ ДАННЫЕ ДАТЧИКОВ</span></div>
+  <div class="sensor-cards">
+    <div class="card sensor-card"><div class="top"><h3>🌱 Почва</h3><span class="tag-demo">SOIL</span></div><p>Показатели почвенного датчика</p><div class="big-reading" id="soilValue">42<small> % влажность</small></div><div class="bar"><i id="soilBar" style="width:42%"></i></div><p id="soilExtra">Дополнительные параметры появятся после подключения соответствующих датчиков.</p></div>
+    <div class="card sensor-card"><div class="top"><h3>🌬 Воздух</h3><span class="tag-demo">AIR</span></div><p>Показатели окружающего воздуха</p><div class="big-reading" id="airValue">23.4<small> °C температура</small></div><div class="bar"><i id="airBar" style="width:58%"></i></div><p id="airExtra">Газовые показатели и качество воздуха — при наличии совместимых датчиков.</p></div>
+    <div class="card sensor-card"><div class="top"><h3>💧 Вода</h3><span class="tag-demo">WATER</span></div><p>Показатели водного датчика</p><div class="big-reading" id="waterValue">18.6<small> °C температура</small></div><div class="bar"><i id="waterBar" style="width:46%"></i></div><p id="waterExtra">pH и другие параметры — только при наличии соответствующих сенсоров.</p></div>
+  </div>
+  <div class="card" style="margin-top:14px"><div class="card-head"><div><h3>Динамика измерений</h3><p>Демонстрационный график — не реальные замеры</p></div><span class="tag-demo">SAMPLE</span></div><div class="chart-box"><canvas id="sensorChart"></canvas></div></div>
+</section>
+
+<section class="page" id="control">
+  <div class="section-title"><div><h2>Управление роботом</h2><p>Bluetooth-соединение и команды движения</p></div><span class="pill" id="controlStatus">Нет соединения</span></div>
+  <div class="control-layout">
+    <div class="card"><div class="card-head"><div><h3>Ручное управление</h3><p>Кнопки интерфейса для проверки команд</p></div></div><div class="control-pad"><span class="empty"></span><button class="btn move" data-move="forward">↑</button><span class="empty"></span><button class="btn move" data-move="left">←</button><button class="btn stop" data-move="stop">■</button><button class="btn move" data-move="right">→</button><span class="empty"></span><button class="btn move" data-move="back">↓</button><span class="empty"></span></div><div class="subnote" id="commandNote">Команды пока не отправляются на робот: требуется согласовать протокол Bluetooth с прошивкой контроллера.</div></div>
+    <div class="card gesture"><div class="card-head"><div><h3>Управление жестами</h3><p>Команды с отдельного контроллера руки</p></div></div><div class="hand">✋</div><div class="gesture-state" id="gestureState">Ожидание данных с контроллера</div><p>Жесты руки считываются отдельной платой и должны передаваться роботу через Bluetooth. Сайт сможет отображать распознанную команду после настройки формата данных.</p><button class="btn" id="gestureDemo">Показать пример команды</button></div>
+  </div>
+  <div class="card" style="margin-top:14px"><div class="card-head"><div><h3>Bluetooth</h3><p>Статус связи с контроллером</p></div></div><div class="sensor-list"><div class="sensor-row"><div class="sensor-name"><div class="sensor-icon">ᛒ</div><div><b>Устройство</b><small id="deviceName">Не выбрано</small></div></div><span class="status-wait" id="deviceState">Ожидание</span></div><div class="sensor-row"><div class="sensor-name"><div class="sensor-icon">↔</div><div><b>Передача команд</b><small>Зависит от Bluetooth-протокола платы</small></div></div><span class="status-wait">Не настроено</span></div></div></div>
+</section>
+
+<section class="page" id="history">
+  <div class="section-title"><div><h2>История исследований</h2><p>Маршруты и точки анализа текущей сессии</p></div><button class="btn" id="exportCsv">Экспорт CSV</button></div>
+  <div class="card"><div class="card-head"><div><h3>Журнал событий</h3><p>Записи интерфейса и демонстрационные измерения</p></div></div><div style="overflow:auto"><table class="history-table"><thead><tr><th>ВРЕМЯ</th><th>СОБЫТИЕ</th><th>ДЕТАЛИ</th><th>ИСТОЧНИК</th></tr></thead><tbody id="historyRows"><tr><td>—</td><td>Система запущена</td><td>Ожидание подключения</td><td>Интерфейс</td></tr></tbody></table></div></div>
+</section>
+
+<section class="page" id="about">
+  <div class="section-title"><div><h2>О проекте ROBO-2</h2><p>Назначение и архитектура существующего робота</p></div></div>
+  <div class="settings-grid">
+    <div class="card settings-card"><h3>Гусеничная платформа</h3><p>Сайт предназначен для управления и отображения данных вашего уже собранного гусеничного робота. Он не проектирует и не создаёт новую конструкцию.</p></div>
+    <div class="card settings-card"><h3>Контроллер и Bluetooth</h3><p>Интерфейс предусматривает беспроводное соединение. Точная реализация зависит от модели Bluetooth-модуля, контроллера и формата команд.</p></div>
+    <div class="card settings-card"><h3>Экологические измерения</h3><p>Почва, воздух и вода отображаются отдельными блоками. Названия и единицы измерения нужно будет привязать к реальным датчикам, установленным на вашем роботе.</p></div>
+    <div class="card settings-card"><h3>Карта движения</h3><p>Пока доступна условная карта и демонстрационный маршрут. Для точного позиционирования нужна система координат или данные одометрии, передаваемые роботом.</p></div>
+  </div>
+  <div class="card settings-card" style="margin-top:14px"><h3>Что нужно для полной интеграции</h3><p>1. Модель основного контроллера и Bluetooth-модуля.<br>2. Модель датчиков почвы, воздуха и воды.<br>3. Как контроллер руки отправляет жесты.<br>4. Как робот сообщает о перемещении (координаты или данные энкодеров).<br><br>До получения этих данных интерфейс честно помечает значения как демонстрационные.</p></div>
+</section>
+</main>
 </div>
-
-
-<div id="toast" class="toast">
-    Готово
-</div>
-
-
-<script src="script.js"></script>
-
+<div class="toast" id="toast"></div>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const titles={overview:"Панель мониторинга",mapPage:"Карта маршрута",sensors:"Экологические показатели",control:"Управление роботом",history:"История исследований",about:"О проекте"};
+function toast(s){const t=$("toast");t.textContent=s;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2400)}
+function openPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===id));$("pageTitle").textContent=titles[id]||"ROBO-2";if(id==="sensors")drawChart()}
+document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>openPage(b.dataset.page)));
+document.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",()=>openPage(b.dataset.open)));
+let connected=false,device=null,route=[{x:90,y:250}],samples=0,demoTimer=null,step=0;
+const demoPoints=[{x:90,y:250},{x:160,y:225},{x:225,y:260},{x:295,y:190},{x:360,y:215},{x:425,y:155},{x:500,y:180},{x:570,y:115},{x:625,y:140}];
+function setConnection(on,name){connected=on;$("topDot").classList.toggle("on",on);$("sideDot").classList.toggle("on",on);$("topConnection").textContent=on?"CONNECTED":"OFFLINE";$("sideConnection").textContent=on?"Bluetooth подключён":"Робот не подключён";$("sideMode").textContent=on?(name||"Устройство подключено"):"Ожидание соединения";$("connectionStat").textContent=on?"ONLINE":"OFFLINE";$("connectionStat").className=on?"green":"amber";$("connectionHint").textContent=on?"Bluetooth-соединение установлено":"Ожидание Bluetooth";$("connectBtn").textContent=on?"Отключить":"Подключить Bluetooth";$("controlStatus").textContent=on?"Подключено":"Нет соединения";$("deviceName").textContent=name||"Не выбрано";$("deviceState").textContent=on?"Подключено":"Ожидание";$("deviceState").className=on?"status-ok":"status-wait"}
+$("connectBtn").addEventListener("click",async()=>{
+ if(connected){if(device&&device.gatt&&device.gatt.connected)device.gatt.disconnect();device=null;setConnection(false);toast("Соединение отключено");return}
+ if(!navigator.bluetooth){toast("Этот браузер не поддерживает Web Bluetooth. Попробуйте совместимый браузер на Android или используйте приложение-мост.");return}
+ try{const d=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:["battery_service"]});device=d;d.addEventListener("gattserverdisconnected",()=>setConnection(false));if(d.gatt){await d.gatt.connect()}setConnection(true,d.name||"Bluetooth device");toast("Устройство найдено. Протокол обмена данными ещё нужно настроить.");}catch(e){toast(e.name==="NotFoundError"?"Устройство не выбрано":"Не удалось подключиться: "+e.message)}
+});
+function drawRoute(){const d=route.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" ");$("routeLine").setAttribute("d",d);$("routeLineLarge").setAttribute("d",d);const p=route[route.length-1];$("roverMarker").setAttribute("transform","translate("+p.x+" "+p.y+")");$("roverMarkerLarge").setAttribute("transform","translate("+p.x+" "+p.y+")");const circles=route.slice(1).map((q,i)=>'<circle cx="'+q.x+'" cy="'+q.y+'" r="5" fill="#70b8ff" stroke="#d9efff" stroke-width="1.5"><title>Точка '+(i+1)+'</title></circle>').join("");$("mapPoints").innerHTML=circles;$("mapPointsLarge").innerHTML=circles;$("distanceStat").textContent=(Math.max(0,route.length-1)*1.2).toFixed(1)+" м";$("samplesStat").textContent=samples}
+function addHistory(event,detail,source){const tr=document.createElement("tr");[new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),event,detail,source].forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td)});$("historyRows").prepend(tr)}
+function startDemo(){if(demoTimer){clearInterval(demoTimer);demoTimer=null;$("mapMode").textContent="SIMULATION / PAUSED";toast("Демонстрация остановлена");return}if(step>=demoPoints.length)step=0;$("mapMode").textContent="SIMULATION / RUNNING";addHistory("Демо-маршрут","Запущено движение маркера","Симуляция");demoTimer=setInterval(()=>{if(step>=demoPoints.length){clearInterval(demoTimer);demoTimer=null;$("mapMode").textContent="SIMULATION / COMPLETE";addHistory("Маршрут завершён","Достигнута конечная точка","Симуляция");return}route.push(demoPoints[step]);step++;if(step%2===0){samples++;addHistory("Точка анализа","Демо-точка №"+samples,"Симуляция")}drawRoute()},850)}
+const mapBtn=document.createElement("button");mapBtn.className="btn primary";mapBtn.textContent="▶ Запустить демо-маршрут";mapBtn.addEventListener("click",startDemo);document.querySelector("#mapPage .section-title div:last-child").prepend(mapBtn);
+$("resetRoute").addEventListener("click",()=>{if(demoTimer){clearInterval(demoTimer);demoTimer=null}route=[{x:90,y:250}];step=0;samples=0;drawRoute();$("mapMode").textContent="SIMULATION / DEMO";addHistory("Маршрут сброшен","Новая сессия","Интерфейс")});
+document.querySelectorAll(".move").forEach(b=>b.addEventListener("click",()=>{const move=b.dataset.move;$("commandNote").textContent="Выбрана команда: "+move+". Она пока не отправлена — нужен согласованный формат Bluetooth-команд.";addHistory("Команда управления",move,"Кнопка интерфейса");toast("Команда отмечена, но не отправлена на контроллер")}));
+$("gestureDemo").addEventListener("click",()=>{const gestures=["Вперёд","Поворот влево","Поворот вправо","Стоп"];const g=gestures[Math.floor(Math.random()*gestures.length)];$("gestureState").textContent="Пример распознанного жеста: "+g;addHistory("Демо-жест",g,"Симуляция");toast("Это пример интерфейса, не сигнал от руки")});
+$("exportCsv").addEventListener("click",()=>{const rows=[["Время","Событие","Детали","Источник"],...Array.from($("historyRows").rows).map(r=>Array.from(r.cells).map(c=>c.textContent))];const csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(";")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));a.download="robo-2-history.csv";a.click();URL.revokeObjectURL(a.href)});
+function drawChart(){const c=$("sensorChart");if(!c)return;const rect=c.getBoundingClientRect();const w=Math.max(300,rect.width),h=Math.max(160,rect.height),dpr=window.devicePixelRatio||1;c.width=w*dpr;c.height=h*dpr;const ctx=c.getContext("2d");ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);ctx.strokeStyle="#20372b";ctx.lineWidth=1;for(let i=0;i<5;i++){const y=15+i*(h-35)/4;ctx.beginPath();ctx.moveTo(25,y);ctx.lineTo(w-8,y);ctx.stroke()}const vals=[42,46,44,51,48,54,52,57,55,60,58,62];ctx.strokeStyle="#54e39a";ctx.lineWidth=2.5;ctx.beginPath();vals.forEach((v,i)=>{const x=30+i*(w-48)/(vals.length-1),y=h-18-v/100*(h-45);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();ctx.fillStyle="#8da397";ctx.font="10px system-ui";ctx.fillText("Влажность почвы · пример",28,12)}
+window.addEventListener("resize",()=>{if($("sensors").classList.contains("active"))drawChart()});
+drawRoute();addHistory("Интерфейс запущен","Демо-режим активен; реальные датчики не подключены","Система");
+})();
+</script>
 </body>
 </html>
