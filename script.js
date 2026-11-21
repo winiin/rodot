@@ -509,6 +509,21 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
+        /* Subtle engineering details: board standoffs and reinforced corners */
+        [[.18, -.78], [.91, -.78], [.18, .02], [.91, .02]].forEach(([x, z]) => {
+            const post = new THREE.Mesh(
+                new THREE.CylinderGeometry(.035, .035, .12, 12),
+                metalMat
+            );
+            post.position.set(x, 1.27, z);
+            robotGroup.add(post);
+        });
+
+        [-1, 1].forEach(side => {
+            addBox(.12, .2, .18, edgeMat, side * 1.18, 1.08, .88);
+            addBox(.12, .2, .18, edgeMat, side * 1.18, 1.08, -.88);
+        });
+
         updateObjectCounter();
     }
 
