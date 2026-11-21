@@ -377,122 +377,140 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!robotGroup) return;
 
-
         robotGroup.clear();
 
+        /*
+         * AETHER tracked field robot.
+         * Keep the site UI intact; only replace the 3D robot model.
+         * Layout is based on the team's described real build:
+         * tracked chassis, battery, motor driver, control board and Bluetooth module.
+         */
 
-        /* BODY */
+        const mat = (color, roughness = .72, metalness = .18) =>
+            new THREE.MeshStandardMaterial({ color, roughness, metalness });
 
-        const bodyGeometry =
-            new THREE.BoxGeometry(
-                3,
-                .7,
-                2.2
+        const chassisMat = mat(0x303a3d, .82, .28);
+        const edgeMat = mat(0x596367, .55, .48);
+        const trackMat = mat(0x171c1e, .94, .04);
+        const rubberMat = mat(0x252b2d, .96, .02);
+        const metalMat = mat(0x899398, .38, .72);
+        const pcbMat = mat(0x174b42, .78, .12);
+        const boardBlue = mat(0x174d75, .72, .18);
+        const batteryMat = mat(0x252c31, .72, .22);
+        const wireRed = mat(0x9e302b, .7, .05);
+        const wireBlack = mat(0x15191b, .8, .02);
+        const connectorMat = mat(0xc0a65d, .5, .45);
+
+        const addBox = (w, h, d, material, x, y, z, bevel = false) => {
+            const mesh = new THREE.Mesh(
+                new THREE.BoxGeometry(w, h, d),
+                material
             );
+            mesh.position.set(x, y, z);
+            robotGroup.add(mesh);
+            return mesh;
+        };
 
-        const body =
-            new THREE.Mesh(
-                bodyGeometry,
-                createMaterial(0x263a32)
+        const addCylinder = (radius, depth, material, x, y, z, segments = 32) => {
+            const mesh = new THREE.Mesh(
+                new THREE.CylinderGeometry(radius, radius, depth, segments),
+                material
             );
+            mesh.rotation.z = Math.PI / 2;
+            mesh.position.set(x, y, z);
+            robotGroup.add(mesh);
+            return mesh;
+        };
 
-        body.position.y = 1.1;
+        /* Low, practical tracked chassis */
+        addBox(2.45, .34, 2.55, chassisMat, 0, .83, 0);
+        addBox(2.2, .12, 2.28, edgeMat, 0, 1.06, -.02);
+        addBox(2.05, .08, 2.12, chassisMat, 0, 1.15, -.02);
 
-        robotGroup.add(body);
+        /* Side track assemblies: belt housings and visible road wheels */
+        [-1.36, 1.36].forEach(x => {
+            addBox(.28, .82, 2.72, trackMat, x, .58, 0);
 
+            [-.91, 0, .91].forEach(z => {
+                addCylinder(.34, .34, rubberMat, x, .58, z, 40);
+                addCylinder(.19, .355, metalMat, x, .58, z, 32);
+                addCylinder(.075, .37, chassisMat, x, .58, z, 24);
+            });
 
-        /* TOP */
+            [-.91, .91].forEach(z => {
+                addCylinder(.095, .37, connectorMat, x, .58, z, 20);
+            });
 
-        const topGeometry =
-            new THREE.BoxGeometry(
-                1.5,
-                .35,
-                1.2
-            );
-
-        const top =
-            new THREE.Mesh(
-                topGeometry,
-                createMaterial(0x39e58c)
-            );
-
-        top.position.y = 1.62;
-
-        robotGroup.add(top);
-
-
-        /* WHEELS */
-
-        const wheelGeometry =
-            new THREE.CylinderGeometry(
-                .62,
-                .62,
-                .45,
-                32
-            );
-
-
-        const wheelMaterial =
-            createMaterial(0x121816);
-
-
-        const positions = [
-            [-1.35, .65, 1.05],
-            [1.35, .65, 1.05],
-            [-1.35, .65, -1.05],
-            [1.35, .65, -1.05]
-        ];
-
-
-        positions.forEach(position => {
-
-            const wheel =
-                new THREE.Mesh(
-                    wheelGeometry,
-                    wheelMaterial
-                );
-
-            wheel.rotation.z =
-                Math.PI / 2;
-
-            wheel.position.set(
-                position[0],
-                position[1],
-                position[2]
-            );
-
-            robotGroup.add(wheel);
-
+            /* Track tread blocks along the visible outer side */
+            for (let i = 0; i < 9; i++) {
+                const z = -.99 + i * .2475;
+                addBox(.035, .12, .17, edgeMat, x + (x > 0 ? .15 : -.15), .58, z);
+            }
         });
 
+        /* Front/rear protective frame and mounting rails */
+        addBox(2.28, .09, .12, metalMat, 0, .98, 1.27);
+        addBox(2.28, .09, .12, metalMat, 0, .98, -1.27);
+        [-.92, .92].forEach(x => {
+            addBox(.09, .12, 2.2, edgeMat, x, 1.2, -.02);
+        });
 
-        /* FRONT SENSOR */
+        /* Battery pack secured low in the centre */
+        addBox(1.05, .42, .92, batteryMat, -.48, 1.38, -.32);
+        addBox(.78, .045, .66, mat(0x3b4449), -.48, 1.615, -.32);
+        addBox(.14, .045, .22, wireRed, -.48, 1.65, -.32);
+        addBox(.14, .045, .22, wireBlack, -.22, 1.65, -.32);
 
-        const sensorGeometry =
-            new THREE.SphereGeometry(
-                .22,
-                24,
-                24
+        /* Motor driver board with terminal blocks */
+        addBox(.82, .075, .55, pcbMat, .58, 1.36, .57);
+        addBox(.25, .09, .18, mat(0x242a2d), .36, 1.445, .57);
+        addBox(.25, .09, .18, mat(0x242a2d), .78, 1.445, .57);
+        for (let i = 0; i < 5; i++) {
+            addBox(.07, .025, .07, connectorMat, .28 + i * .14, 1.415, .57);
+        }
+
+        /* Main controller/electronics board */
+        addBox(.92, .075, .68, boardBlue, .55, 1.39, -.45);
+        addBox(.28, .12, .25, mat(0x20282c), .55, 1.48, -.45);
+        addBox(.16, .07, .12, metalMat, .25, 1.46, -.27);
+        addBox(.16, .07, .12, metalMat, .84, 1.46, -.63);
+
+        /* Bluetooth module on the controller board */
+        addBox(.34, .055, .2, mat(0x245f91), .84, 1.48, -.12);
+        addBox(.22, .018, .12, metalMat, .84, 1.517, -.12);
+        addBox(.025, .14, .025, metalMat, .98, 1.57, -.12);
+
+        /* Visible wiring between battery, driver and controller */
+        const addWire = (points, material, radius = .025) => {
+            const curve = new THREE.CatmullRomCurve3(
+                points.map(p => new THREE.Vector3(p[0], p[1], p[2]))
             );
-
-        const sensor =
-            new THREE.Mesh(
-                sensorGeometry,
-                createMaterial(0x39e58c)
+            const tube = new THREE.Mesh(
+                new THREE.TubeGeometry(curve, 20, radius, 8, false),
+                material
             );
+            robotGroup.add(tube);
+        };
 
-        sensor.position.set(
-            0,
-            1.55,
-            1.15
-        );
+        addWire([[-.1, 1.63, -.32], [.12, 1.72, -.05], [.38, 1.55, .35]], wireRed);
+        addWire([[-.22, 1.62, -.32], [.02, 1.69, -.12], [.48, 1.53, .48]], wireBlack);
+        addWire([[.52, 1.49, .34], [.72, 1.58, .08], [.75, 1.5, -.12]], wireRed, .018);
+        addWire([[.65, 1.48, .34], [.92, 1.55, .15], [.91, 1.5, -.1]], wireBlack, .018);
 
-        robotGroup.add(sensor);
-
+        /* Small mounting bolts on the deck */
+        [-.98, .98].forEach(x => {
+            [-1.05, 1.05].forEach(z => {
+                const bolt = new THREE.Mesh(
+                    new THREE.CylinderGeometry(.045, .045, .025, 16),
+                    connectorMat
+                );
+                bolt.position.set(x, 1.22, z);
+                robotGroup.add(bolt);
+            });
+        });
 
         updateObjectCounter();
     }
-
 
     function addComponentTo3D(component) {
 
