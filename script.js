@@ -27,6 +27,16 @@ function renderMap(){const layer=$("routeLayer"),path=points.map((p,i)=>(i?"L":"
 $("mapCanvas").addEventListener("click",e=>{if(e.target.closest(".map-overlay-label,.map-coordinates"))return;const r=$("mapCanvas").getBoundingClientRect(),x=Math.max(15,Math.min(885,(e.clientX-r.left)/r.width*900)),y=Math.max(15,Math.min(505,(e.clientY-r.top)/r.height*520));points.push({x:Math.round(x),y:Math.round(y)});write(STORAGE.points,points);renderMap();toast("Точка плана добавлена")});
 $("pointList").addEventListener("click",e=>{const b=e.target.closest("[data-remove-point]");if(!b)return;points.splice(Number(b.dataset.removePoint),1);write(STORAGE.points,points);renderMap()});
 $("addPoint").addEventListener("click",()=>{const last=points[points.length-1]||{x:110,y:110};points.push({x:Math.min(820,last.x+105),y:Math.min(455,last.y+65)});write(STORAGE.points,points);renderMap();toast("Точка добавлена в план")});
+$("previewRoute").addEventListener("click",()=>{
+ if(points.length<2){toast("Добавь минимум две точки для предпросмотра");return}
+ const layer=$("routeLayer"),d=points.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" ");
+ layer.querySelector("#previewPath")?.remove();layer.querySelector("#movingMarker")?.remove();
+ const path=document.createElementNS("http://www.w3.org/2000/svg","path");
+ path.id="previewPath";path.setAttribute("d",d);path.setAttribute("fill","none");path.setAttribute("stroke","#83e3ff");path.setAttribute("stroke-width","4");path.setAttribute("stroke-dasharray","8 8");layer.appendChild(path);
+ const marker=document.createElementNS("http://www.w3.org/2000/svg","g");marker.id="movingMarker";
+ marker.innerHTML='<circle r="16" fill="#83e3ff" opacity=".2"/><rect x="-8" y="-6" width="16" height="12" rx="3" fill="#83e3ff"/><circle cx="-5" cy="7" r="2.5" fill="#ffd27c"/><circle cx="5" cy="7" r="2.5" fill="#ffd27c"/><animateMotion dur="7s" repeatCount="1" rotate="auto"><mpath href="#previewPath"/></animateMotion>';
+ layer.appendChild(marker);$("mapMode").textContent="Предпросмотр запланированного маршрута · не GPS";toast("Предпросмотр маршрута запущен");
+});
 $("clearPoints").addEventListener("click",()=>{if(!points.length)return;if(confirm("Очистить все планируемые точки?")){points=[];write(STORAGE.points,points);renderMap()}});
 document.querySelectorAll(".eng-tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".eng-tab").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".eng-content").forEach(x=>x.classList.toggle("active",x.id===b.dataset.tab))}));
 const checks=read(STORAGE.checks,{});document.querySelectorAll("[data-check]").forEach(c=>{c.checked=!!checks[c.dataset.check];c.addEventListener("change",()=>{checks[c.dataset.check]=c.checked;write(STORAGE.checks,checks)})});
