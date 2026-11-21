@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07130f">
+<meta name="description" content="Отдельная презентационная страница мобильного робота команды AETHER.">
+<title>AETHER | Наш робот</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07130f;--panel:#0d1d16;--panel2:#11251b;--line:#244332;--green:#73e5a4;--mint:#c4f8d8;--text:#f0f8f2;--muted:#9bb2a3;--gold:#f2cf87}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 80% 0,#1b4930 0,transparent 35%),var(--bg);color:var(--text);font-family:Manrope,system-ui,sans-serif}a{color:inherit;text-decoration:none}.wrap{width:min(1160px,calc(100% - 40px));margin:auto}.top{height:78px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ffffff14}.brand{display:flex;align-items:center;gap:12px;font-family:"Space Grotesk";font-weight:700;letter-spacing:2px}.star{width:38px;height:38px;display:grid;place-items:center;border:1px solid #73e5a477;border-radius:12px;color:var(--gold);font-size:21px}.brand small{display:block;color:var(--muted);font:9px Manrope;letter-spacing:2px;margin-top:3px}.back{color:var(--mint);font-size:12px;border:1px solid var(--line);border-radius:30px;padding:10px 15px}.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:30px;align-items:center;padding:72px 0 56px}.eyebrow{color:var(--green);font-size:10px;letter-spacing:2.6px;font-weight:800}.hero h1{font:700 clamp(38px,6vw,68px)/1.02 "Space Grotesk";letter-spacing:-2px;margin:17px 0}.hero h1 em{font-style:normal;color:var(--green)}.hero p{max-width:570px;color:var(--muted);font-size:14px;line-height:1.9}.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px}.chips span{border:1px solid var(--line);background:#10251a;border-radius:30px;padding:8px 12px;color:var(--mint);font-size:10px}.rover{position:relative;border:1px solid #396347;border-radius:28px;background:radial-gradient(circle at 50% 45%,#244d34,#0b1912 70%);padding:20px;overflow:hidden;min-height:350px;display:grid;place-items:center}.rover:before,.rover:after{content:"";position:absolute;border:1px solid #8be9ac24;border-radius:50%;width:280px;height:280px}.rover:after{width:360px;height:360px}.rover svg{position:relative;z-index:1;width:100%;max-width:520px;filter:drop-shadow(0 25px 22px #0009)}.caption{position:absolute;z-index:2;bottom:18px;left:22px;color:var(--mint);font-size:9px;letter-spacing:2px}.section{padding:35px 0}.heading{margin-bottom:20px}.heading small{color:var(--green);font-size:9px;letter-spacing:2.4px}.heading h2{font:700 clamp(25px,4vw,38px) "Space Grotesk";margin:8px 0}.heading p{color:var(--muted);font-size:13px;line-height:1.8;max-width:700px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}.card{background:linear-gradient(145deg,#10241a,#0b1912);border:1px solid var(--line);border-radius:17px;padding:22px}.num{color:var(--gold);font:600 11px "Space Grotesk";letter-spacing:1px}.card h3{font-size:15px;margin:13px 0 8px}.card p{font-size:12px;line-height:1.8;color:var(--muted);margin:0}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.step{padding:19px;border:1px solid var(--line);border-radius:15px;background:#0c1b14}.step b{display:block;color:var(--green);font:700 22px "Space Grotesk"}.step h3{font-size:13px;margin:10px 0 6px}.step p{font-size:11px;line-height:1.7;color:var(--muted);margin:0}.bluetooth{display:flex;align-items:center;justify-content:space-between;gap:25px;padding:25px;border:1px solid #47734e;border-radius:18px;background:linear-gradient(110deg,#132d1d,#0c1a13)}.bluetooth h3{font:700 22px "Space Grotesk";margin:0 0 8px}.bluetooth p{font-size:12px;color:var(--muted);line-height:1.8;margin:0;max-width:700px}.bt-mark{font-size:50px;color:var(--green);flex:none}.note{font-size:10px;color:#81998a;line-height:1.7;margin-top:14px}.footer{border-top:1px solid #ffffff16;margin-top:50px;padding:25px 0 35px;color:#81998a;font-size:10px;display:flex;justify-content:space-between;gap:15px}.footer b{color:var(--mint);letter-spacing:2px}
+@media(max-width:800px){.hero{grid-template-columns:1fr;padding-top:45px}.rover{min-height:280px}.grid{grid-template-columns:1fr 1fr}.flow{grid-template-columns:1fr 1fr}.bluetooth{align-items:flex-start}.bt-mark{font-size:36px}}
+@media(max-width:520px){.wrap{width:min(100% - 28px,1160px)}.top{height:68px}.brand{font-size:13px}.back{font-size:10px;padding:8px 11px}.hero{padding:38px 0}.rover{min-height:235px;padding:8px}.grid,.flow{grid-template-columns:1fr}.bluetooth{padding:18px}.footer{flex-direction:column}}
+</style>
+</head>
+<body>
+<header class="top wrap"><a class="brand" href="index.html"><span class="star">✦</span><span>AETHER<small>ROBOTICS · PROJECT</small></span></a><a class="back" href="index.html">← На основной сайт</a></header>
+<main class="wrap">
+<section class="hero">
+ <div><div class="eyebrow">AETHER / ROBOTICS PROJECT</div><h1>Наш робот.<br><em>Наш способ исследовать.</em></h1><p>Мобильная робототехническая платформа для изучения условий выращивания растений. Робот перемещается на гусеничном шасси, а команды движения передаются по Bluetooth с контроллера, который реагирует на наклон руки.</p><div class="chips"><span>Гусеничная платформа</span><span>Arduino Nano</span><span>MPU6050</span><span>Bluetooth</span></div></div>
+ <div class="rover"><svg viewBox="0 0 560 340" role="img" aria-label="Концептуальная иллюстрация гусеничной мобильной платформы"><defs><linearGradient id="track" x2="0" y2="1"><stop stop-color="#8da99a"/><stop offset=".45" stop-color="#435e4d"/><stop offset="1" stop-color="#18291f"/></linearGradient><linearGradient id="body" x2="1" y2="1"><stop stop-color="#b7f2cb"/><stop offset=".5" stop-color="#4caa70"/><stop offset="1" stop-color="#1b5735"/></linearGradient><linearGradient id="dark" x2="0" y2="1"><stop stop-color="#294b35"/><stop offset="1" stop-color="#101d15"/></linearGradient></defs>
+ <ellipse cx="280" cy="286" rx="220" ry="25" fill="#000" opacity=".4"/>
+ <path d="M45 215Q49 168 98 164H457Q504 169 515 215L502 263Q490 288 449 291H104Q61 286 51 260Z" fill="url(#track)" stroke="#b4d7bf" stroke-width="4"/>
+ <path d="M70 216Q76 184 111 182H442Q480 185 489 219L478 255Q470 273 439 275H116Q82 270 76 246Z" fill="#0a1710" stroke="#8bb59a" stroke-width="3"/>
+ <g fill="#304a37" stroke="#a7cdb2" stroke-width="3"><circle cx="122" cy="229" r="24"/><circle cx="187" cy="229" r="24"/><circle cx="252" cy="229" r="24"/><circle cx="317" cy="229" r="24"/><circle cx="382" cy="229" r="24"/><circle cx="444" cy="229" r="20"/></g><g fill="#a8d7b6"><circle cx="122" cy="229" r="7"/><circle cx="187" cy="229" r="7"/><circle cx="252" cy="229" r="7"/><circle cx="317" cy="229" r="7"/><circle cx="382" cy="229" r="7"/></g>
+ <path d="M90 165L128 102Q140 81 170 80H390Q420 83 437 108L474 165Z" fill="url(#body)" stroke="#d4f5dc" stroke-width="4"/>
+ <path d="M151 101Q166 65 197 64H359Q394 66 410 101L422 124H139Z" fill="url(#dark)" stroke="#9dd9ae" stroke-width="3"/>
+ <rect x="218" y="43" width="125" height="25" rx="7" fill="#12291a" stroke="#e4c77d" stroke-width="3"/><rect x="247" y="25" width="67" height="18" rx="5" fill="#e4c77d"/>
+ <path d="M280 25V11" stroke="#8cf0b0" stroke-width="3" stroke-linecap="round"/><circle cx="408" cy="142" r="13" fill="#f0d38c" stroke="#fff0c4" stroke-width="3"/>
+ <path d="M104 167H459" stroke="#d3f7dc" stroke-width="3" opacity=".75"/><text x="280" y="150" text-anchor="middle" fill="#f2fff5" font-family="Manrope" font-size="17" font-weight="800" letter-spacing="4">AETHER</text>
+ </svg><div class="caption">MOBILE TRACKED PLATFORM · CONCEPT VIEW</div></div>
+</section>
+<section class="section"><div class="heading"><small>01 / PURPOSE</small><h2>Для чего создан робот</h2><p>Проект объединяет мобильную платформу и исследование окружающей среды. Его задача — помогать наблюдать за условиями, в которых растут растения.</p></div><div class="grid">
+ <article class="card"><span class="num">01 — MOVEMENT</span><h3>Перемещение по участку</h3><p>Гусеничное шасси служит мобильной основой для движения по исследуемой поверхности.</p></article>
+ <article class="card"><span class="num">02 — CONTROL</span><h3>Управление наклоном руки</h3><p>Контроллер считывает наклон руки и преобразует его в команды движения.</p></article>
+ <article class="card"><span class="num">03 — RESEARCH</span><h3>Изучение условий</h3><p>Проект предназначен для мониторинга влажности почвы и параметров микроклимата.</p></article>
+</div></section>
+<section class="section"><div class="heading"><small>02 / CONTROL SYSTEM</small><h2>Как передаётся команда</h2><p>Схема показывает принцип управления, описанный в материалах проекта.</p></div><div class="flow">
+ <article class="step"><b>01</b><h3>Наклон руки</h3><p>Пользователь наклоняет контроллер вперёд, назад или в сторону.</p></article>
+ <article class="step"><b>02</b><h3>MPU6050</h3><p>Акселерометр и гироскоп фиксируют изменение положения.</p></article>
+ <article class="step"><b>03</b><h3>Arduino Nano</h3><p>Микроконтроллер обрабатывает показания и формирует команду.</p></article>
+ <article class="step"><b>04</b><h3>Bluetooth</h3><p>Команда передаётся по беспроводному Bluetooth-соединению на робота.</p></article>
+</div></section>
+<section class="section"><div class="heading"><small>03 / MAIN ELEMENTS</small><h2>Основные элементы проекта</h2><p>Здесь перечислены только узлы, которые подтверждены описанием вашего проекта.</p></div><div class="grid">
+ <article class="card"><span class="num">ELECTRONICS</span><h3>Arduino Nano</h3><p>Контроллер, который обрабатывает данные датчика наклона и формирует команды.</p></article>
+ <article class="card"><span class="num">MOTION SENSOR</span><h3>MPU6050</h3><p>Модуль акселерометра и гироскопа в ручном контроллере.</p></article>
+ <article class="card"><span class="num">COMMUNICATION</span><h3>Bluetooth</h3><p>Текущий беспроводной канал передачи команд между контроллером и роботом.</p></article>
+ <article class="card"><span class="num">MOBILITY</span><h3>Гусеничное шасси</h3><p>Механическая основа мобильной платформы.</p></article>
+ <article class="card"><span class="num">DRIVE</span><h3>Двигатели и драйвер</h3><p>Приводная часть обеспечивает движение платформы по командам управления.</p></article>
+ <article class="card"><span class="num">PROJECT GOAL</span><h3>Мониторинг среды</h3><p>Направление проекта — исследование почвы и микроклимата для оценки условий выращивания растений.</p></article>
+</div></section>
+<section class="section"><div class="bluetooth"><div><h3>Сейчас: Bluetooth</h3><p>На данный момент для связи с роботом используется Bluetooth. GPS, Wi-Fi, USB-подключение и другие каналы связи на этой странице не заявляются как реализованные функции.</p></div><div class="bt-mark">ᛒ</div></div><p class="note">Иллюстрация — концептуальное оформление страницы, а не точная фотография или техническая 3D-модель вашего робота. Если пришлёте фото робота, изображение можно будет заменить на более точное.</p></section>
+</main>
+<footer class="footer wrap"><b>AETHER ✦</b><span>ROBOTICS PROJECT · FOLLOW THE STARS, EXPLORE THE EARTH</span></footer>
+</body>
+</html>
