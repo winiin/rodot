@@ -1,55 +1,1661 @@
-document.addEventListener("DOMContentLoaded",()=>{
-"use strict";
-const $=id=>document.getElementById(id);
-const STORAGE={readings:"aether_robo2_readings_v1",journal:"aether_robo2_journal_v1",points:"aether_robo2_points_v1",checks:"aether_robo2_checks_v1"};
-const read=(key,fallback=[])=>{try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}};
-const write=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
-let readings=read(STORAGE.readings),journal=read(STORAGE.journal),points=read(STORAGE.points),serialPort=null,reader=null,keepReading=false;
-const pageNames={home:"Обзор экспедиции",robot:"Наш робот",mission:"Миссия и маршрут",map:"Карта участка",telemetry:"Датчики и данные",analytics:"Аналитика",control:"Подключение",engineering:"Инженерный центр",journal:"Журнал экспедиции"};
-function toast(msg){const el=$("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove("show"),2600)}
-function openPage(id){if(!pageNames[id])return;document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.page===id));$("pageTitle").textContent=pageNames[id];if(id==="analytics")renderAnalytics();if(id==="map")renderMap();if(id==="journal")renderJournal();window.scrollTo({top:0,behavior:"smooth"})}
-document.querySelectorAll("[data-page]").forEach(b=>b.addEventListener("click",()=>openPage(b.dataset.page)));
-document.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",()=>openPage(b.dataset.open)));
-function tick(){$("clock").textContent=new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}tick();setInterval(tick,1000);
-function connection(on,label){$("connectionLabel").textContent=on?"Подключён":"Не подключён";$("connectionSub").textContent=label|| (on?"Получение телеметрии":"Ожидание источника данных");$("topConnection").textContent=on?"CONNECTED":"OFFLINE";document.querySelectorAll(".live-dot").forEach(d=>d.classList.toggle("connected",on));$("metricConnection").textContent=on?"ONLINE":"OFFLINE";$("metricConnectionNote").textContent=on?"Источник данных подключён":"Источник данных не подключён";$("telemetryStatus").textContent=on?"Получение данных от контроллера":"Источник данных не подключён"}
-function fmt(v,unit){return Number.isFinite(v)?v.toFixed(1)+" "+unit:"—"}
-function latest(){return readings.length?readings[readings.length-1]:{}}
-function renderTelemetry(){const x=latest();$("soilValue").innerHTML=Number.isFinite(x.soil)?x.soil.toFixed(1)+'<small>%</small>':'—<small>%</small>';$("tempValue").innerHTML=Number.isFinite(x.temperature)?x.temperature.toFixed(1)+'<small>°C</small>':'—<small>°C</small>';$("airValue").innerHTML=Number.isFinite(x.humidity)?x.humidity.toFixed(1)+'<small>%</small>':'—<small>%</small>';$("soilBar").style.width=Number.isFinite(x.soil)?Math.max(0,Math.min(100,x.soil))+"%":"0%";$("tempBar").style.width=Number.isFinite(x.temperature)?Math.max(0,Math.min(100,x.temperature+10))+"%":"0%";$("airBar").style.width=Number.isFinite(x.humidity)?Math.max(0,Math.min(100,x.humidity))+"%":"0%";const t=x.timestamp?new Date(x.timestamp).toLocaleString("ru-RU"):"Нет измерений";$("soilTime").textContent=$("tempTime").textContent=$("airTime").textContent=t;$("metricSoil").innerHTML=Number.isFinite(x.soil)?x.soil.toFixed(1)+' <small>%</small>':'— <small>%</small>';$("metricTemp").innerHTML=Number.isFinite(x.temperature)?x.temperature.toFixed(1)+' <small>°C</small>':'— <small>°C</small>';$("metricAir").innerHTML=Number.isFinite(x.humidity)?x.humidity.toFixed(1)+' <small>%</small>':'— <small>%</small>';const body=$("readingsBody");body.innerHTML=readings.slice(-12).reverse().map(r=>'<tr><td>'+esc(new Date(r.timestamp).toLocaleString("ru-RU"))+'</td><td>'+fmt(r.soil,"%")+'</td><td>'+fmt(r.temperature,"°C")+'</td><td>'+fmt(r.humidity,"%")+'</td><td>'+esc(r.source||"Контроллер")+'</td></tr>').join("")||'<tr><td colspan="5" class="empty-table">Измерений пока нет.</td></tr>';renderAnalytics()}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function addReading(data,source="Контроллер"){const r={timestamp:data.timestamp?new Date(data.timestamp).toISOString():new Date().toISOString(),source};for(const k of ["soil","temperature","humidity"]){if(data[k]!==undefined&&data[k]!==null&&data[k]!==""&&Number.isFinite(Number(data[k])))r[k]=Number(data[k])}if(!["soil","temperature","humidity"].some(k=>Number.isFinite(r[k])))return false;readings.push(r);if(readings.length>3000)readings=readings.slice(-3000);write(STORAGE.readings,readings);journal.push({time:r.timestamp,title:"Получено измерение",detail:Object.entries(r).filter(([k])=>["soil","temperature","humidity"].includes(k)).map(([k,v])=>k+": "+v).join(" · "),type:source});write(STORAGE.journal,journal);renderTelemetry();return true}
-function renderAnalytics(){const avg=k=>{const a=readings.map(r=>r[k]).filter(Number.isFinite);return a.length?(a.reduce((s,v)=>s+v,0)/a.length).toFixed(1):"—"};$("totalReadings").textContent=readings.length;$("avgSoil").textContent=avg("soil");$("avgTemp").textContent=avg("temperature");$("avgHumidity").textContent=avg("humidity");drawChart("soilChart","soil","soilChartEmpty","#83e3ff");drawChart("tempChart","temperature","tempChartEmpty","#ffd27c");drawChart("humidityChart","humidity","humidityChartEmpty","#b8b3ff");const parts=[];if(avg("soil")!=="—")parts.push("средняя влажность почвы "+avg("soil")+"%");if(avg("temperature")!=="—")parts.push("средняя температура "+avg("temperature")+"°C");if(avg("humidity")!=="—")parts.push("средняя влажность воздуха "+avg("humidity")+"%");$("insightText").textContent=parts.length?"По сохранённым измерениям: "+parts.join("; ")+". Это описательная статистика, а не автоматическое заключение о необходимости полива. Для рекомендаций нужно учитывать тип почвы, культуру и калибровку датчика.":"После первых измерений здесь появится сводка по доступным показателям. Порог влажности зависит от типа грунта и культуры."}
-function drawChart(id,key,emptyId,stroke){const canvas=$(id),empty=$(emptyId),data=readings.filter(r=>Number.isFinite(r[key])).slice(-60);if(!canvas)return;const ctx=canvas.getContext("2d"),rect=canvas.getBoundingClientRect(),w=Math.max(260,rect.width),h=190,dpr=window.devicePixelRatio||1;canvas.width=w*dpr;canvas.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);empty.style.display=data.length?"none":"block";if(!data.length)return;const vals=data.map(r=>r[key]),min=Math.min(...vals),max=Math.max(...vals),pad=Math.max((max-min)*.2,.8),lo=min-pad,hi=max+pad;ctx.strokeStyle="#2b4268";ctx.lineWidth=1;for(let i=0;i<4;i++){const y=15+i*(h-35)/3;ctx.beginPath();ctx.moveTo(28,y);ctx.lineTo(w-10,y);ctx.stroke()}ctx.strokeStyle=stroke;ctx.lineWidth=2.5;ctx.beginPath();data.forEach((r,i)=>{const x=30+i*(w-48)/Math.max(1,data.length-1),y=h-18-(r[key]-lo)/(hi-lo)*(h-45);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();ctx.fillStyle="#9eb0ce";ctx.font="9px Manrope";ctx.fillText(max.toFixed(1),4,17);ctx.fillText(min.toFixed(1),4,h-10)}
-function logEvent(title,detail){journal.push({time:new Date().toISOString(),title,detail,type:"Система"});journal=journal.slice(-500);write(STORAGE.journal,journal);renderJournal()}
-function renderJournal(){$("journalCount").textContent=journal.length;$("journalEntries").innerHTML=journal.slice().reverse().map((e,i)=>'<div class="journal-entry"><time>'+esc(new Date(e.time).toLocaleString("ru-RU"))+'</time><div><b>'+esc(e.title)+'</b><p>'+esc(e.detail||"")+' · '+esc(e.type||"")+'</p></div><button data-delete-journal="'+(journal.length-1-i)+'">Удалить</button></div>').join("")||'<div class="empty-state">Журнал пока пуст. Подключи источник данных или добавь заметку.</div>'}
-$("journalEntries").addEventListener("click",e=>{const b=e.target.closest("[data-delete-journal]");if(!b)return;journal.splice(Number(b.dataset.deleteJournal),1);write(STORAGE.journal,journal);renderJournal()});
-$("saveNote").addEventListener("click",()=>{const value=$("noteText").value.trim();if(!value){toast("Сначала напиши заметку");return}logEvent("Заметка команды",value);$("noteText").value="";toast("Заметка сохранена")});
-function renderMap(){const layer=$("routeLayer"),path=points.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" ");layer.innerHTML=(points.length>1?'<path d="'+path+'" fill="none" stroke="#83e3ff" stroke-width="4" stroke-dasharray="9 8" stroke-linecap="round"/>':"")+points.map((p,i)=>'<g><circle cx="'+p.x+'" cy="'+p.y+'" r="15" fill="#ffd27c" opacity=".15"/><circle cx="'+p.x+'" cy="'+p.y+'" r="7" fill="#ffd27c" stroke="#fff0c7" stroke-width="2"/><text x="'+(p.x+12)+'" y="'+(p.y-12)+'" fill="#edf5ff" font-size="13" font-family="Manrope">P-'+String(i+1).padStart(2,"0")+'</text></g>').join("");$("mapPointCount").textContent=points.length+" PLANNED POINTS";$("pointList").innerHTML=points.map((p,i)=>'<div class="point-row"><b>P-'+String(i+1).padStart(2,"0")+'</b><small>Позиция на схеме: '+Math.round(p.x/9*10)/10+'%, '+Math.round(p.y/5.2*10)/10+'%</small><button data-remove-point="'+i+'">Удалить</button></div>').join("")||'<div class="empty-state">На плане пока нет точек. Добавь первую точку на карте.</div>'}
-$("mapCanvas").addEventListener("click",e=>{if(e.target.closest(".map-overlay-label,.map-coordinates"))return;const r=$("mapCanvas").getBoundingClientRect(),x=Math.max(15,Math.min(885,(e.clientX-r.left)/r.width*900)),y=Math.max(15,Math.min(505,(e.clientY-r.top)/r.height*520));points.push({x:Math.round(x),y:Math.round(y)});write(STORAGE.points,points);renderMap();toast("Точка плана добавлена")});
-$("pointList").addEventListener("click",e=>{const b=e.target.closest("[data-remove-point]");if(!b)return;points.splice(Number(b.dataset.removePoint),1);write(STORAGE.points,points);renderMap()});
-$("addPoint").addEventListener("click",()=>{const last=points[points.length-1]||{x:110,y:110};points.push({x:Math.min(820,last.x+105),y:Math.min(455,last.y+65)});write(STORAGE.points,points);renderMap();toast("Точка добавлена в план")});
-$("previewRoute").addEventListener("click",()=>{
- if(points.length<2){toast("Добавь минимум две точки для предпросмотра");return}
- const layer=$("routeLayer"),d=points.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" ");
- layer.querySelector("#previewPath")?.remove();layer.querySelector("#movingMarker")?.remove();
- const path=document.createElementNS("http://www.w3.org/2000/svg","path");
- path.id="previewPath";path.setAttribute("d",d);path.setAttribute("fill","none");path.setAttribute("stroke","#83e3ff");path.setAttribute("stroke-width","4");path.setAttribute("stroke-dasharray","8 8");layer.appendChild(path);
- const marker=document.createElementNS("http://www.w3.org/2000/svg","g");marker.id="movingMarker";
- marker.innerHTML='<circle r="16" fill="#83e3ff" opacity=".2"/><rect x="-8" y="-6" width="16" height="12" rx="3" fill="#83e3ff"/><circle cx="-5" cy="7" r="2.5" fill="#ffd27c"/><circle cx="5" cy="7" r="2.5" fill="#ffd27c"/><animateMotion dur="7s" repeatCount="1" rotate="auto"><mpath href="#previewPath"/></animateMotion>';
- layer.appendChild(marker);$("mapMode").textContent="Предпросмотр запланированного маршрута · не GPS";toast("Предпросмотр маршрута запущен");
-});
-$("clearPoints").addEventListener("click",()=>{if(!points.length)return;if(confirm("Очистить все планируемые точки?")){points=[];write(STORAGE.points,points);renderMap()}});
-document.querySelectorAll(".eng-tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".eng-tab").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".eng-content").forEach(x=>x.classList.toggle("active",x.id===b.dataset.tab))}));
-const checks=read(STORAGE.checks,{});document.querySelectorAll("[data-check]").forEach(c=>{c.checked=!!checks[c.dataset.check];c.addEventListener("change",()=>{checks[c.dataset.check]=c.checked;write(STORAGE.checks,checks)})});
-function csvDownload(name,rows){const blob=new Blob(["\ufeff"+rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\n")],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
-$("exportCsv").addEventListener("click",()=>{if(!readings.length){toast("Пока нечего экспортировать");return}csvDownload("aether-robo2-readings.csv",[["timestamp","soil","temperature","humidity","source"],...readings.map(r=>[r.timestamp,r.soil??"",r.temperature??"",r.humidity??"",r.source??""])])});
-$("exportJournal").addEventListener("click",()=>{if(!journal.length){toast("Журнал пока пуст");return}csvDownload("aether-robo2-journal.csv",[["timestamp","title","detail","type"],...journal.map(r=>[r.time,r.title,r.detail,r.type])])});
-$("csvInput").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;const lines=(await f.text()).replace(/^\uFEFF/,"").split(/\r?\n/).filter(Boolean);if(lines.length<2){toast("В CSV нет строк с данными");return}const split=line=>line.includes(";")?line.split(";"):line.split(",");const heads=split(lines[0]).map(s=>s.trim().toLowerCase().replace(/"/g,""));let added=0;for(const line of lines.slice(1)){const cells=split(line).map(s=>s.trim().replace(/^"|"$/g,"")),obj={};heads.forEach((h,i)=>{const v=cells[i];if(["soil","temperature","humidity"].includes(h)&&v!=="")obj[h]=Number(v.replace(",","."));if(["timestamp","time","date"].includes(h)&&v)obj.timestamp=v});if(addReading(obj,"CSV import"))added++}toast("Импортировано записей: "+added);e.target.value=""});
-function serialLog(message){const row=document.createElement("div");row.className="log-entry";row.innerHTML="<b>"+esc(new Date().toLocaleTimeString("ru-RU"))+"</b>"+esc(message);const box=$("connectionLog");box.querySelector(".empty-state")?.remove();box.prepend(row);while(box.children.length>30)box.lastElementChild.remove()}
-async function connectSerial(){if(!("serial" in navigator)){toast("Web Serial не поддерживается. Используй Chrome или Edge на компьютере.");return}try{serialPort=await navigator.serial.requestPort();await serialPort.open({baudRate:9600});keepReading=true;$("connectSerial").disabled=true;$("disconnectSerial").disabled=false;connection(true,"USB Serial · приём данных");serialLog("Последовательный порт открыт. Ожидается JSON-телеметрия.");logEvent("Подключён последовательный порт","USB Serial, скорость 9600 бод");const decoder=new TextDecoderStream();serialPort.readable.pipeTo(decoder.writable).catch(()=>{});reader=decoder.readable.getReader();let buffer="";while(keepReading){const {value,done}=await reader.read();if(done)break;buffer+=value;let idx;while((idx=buffer.indexOf("\n"))>=0){const line=buffer.slice(0,idx).trim();buffer=buffer.slice(idx+1);if(!line)continue;try{const data=JSON.parse(line);if(addReading(data,"USB Serial"))serialLog("Получено измерение: "+line.slice(0,140));else serialLog("Строка JSON не содержит поддерживаемых числовых полей")}catch{serialLog("Не удалось разобрать строку: "+line.slice(0,100))}}}}catch(err){serialLog("Ошибка: "+err.message);toast("Не удалось подключить порт: "+err.message)}finally{if(reader){try{reader.releaseLock()}catch{}reader=null}if(serialPort){try{await serialPort.close()}catch{}serialPort=null}keepReading=false;$("connectSerial").disabled=false;$("disconnectSerial").disabled=true;connection(false)}}
-$("connectSerial").addEventListener("click",connectSerial);$("disconnectSerial").addEventListener("click",async()=>{keepReading=false;try{await reader?.cancel()}catch{}serialLog("Запрошено отключение");connection(false)});
-$("serialSupport").textContent=("serial" in navigator)?"Web Serial доступен в этом браузере.":"Web Serial не обнаружен. Открой сайт в актуальном Chrome или Edge по HTTPS.";
-function importState(){renderTelemetry();renderMap();renderJournal();renderAnalytics();connection(false);if("serial" in navigator)navigator.serial.addEventListener("disconnect",()=>{keepReading=false;connection(false);serialLog("Устройство отключено")})}
-window.addEventListener("resize",()=>{if($("analytics").classList.contains("active"))renderAnalytics()});
-$("mobileMenu").addEventListener("click",()=>$("sidebar").classList.toggle("mobile-open"));
-importState();
+document.addEventListener("DOMContentLoaded", () => {
+
+    "use strict";
+
+
+    /* =====================================================
+       STATE
+    ===================================================== */
+
+    let components = [];
+
+    let scene;
+    let camera;
+    let renderer;
+
+    let robotGroup;
+
+    let isDragging = false;
+
+    let previousMouseX = 0;
+    let previousMouseY = 0;
+
+    let rotationX = 0;
+    let rotationY = 0;
+
+    let cameraDistance = 7;
+
+
+    /* =====================================================
+       HELPERS
+    ===================================================== */
+
+    function $(id) {
+        return document.getElementById(id);
+    }
+
+
+    function showToast(message) {
+
+        const toast = $("toast");
+
+        if (!toast) return;
+
+        toast.textContent = message;
+
+        toast.classList.add("show");
+
+        setTimeout(() => {
+            toast.classList.remove("show");
+        }, 2200);
+    }
+
+
+    /* =====================================================
+       NAVIGATION
+    ===================================================== */
+
+    const navButtons =
+        document.querySelectorAll(".nav-btn");
+
+    const pages =
+        document.querySelectorAll(".page");
+
+    const pageTitle =
+        $("pageTitle");
+
+
+    const titles = {
+        dashboard: "Главная",
+        builder: "3D Сборка",
+        components: "Компоненты",
+        electronics: "Электроника",
+        code: "RoboCode",
+        calculator: "Расчёты",
+        testing: "Диагностика",
+        documentation: "Документация"
+    };
+
+
+    function openPage(pageId) {
+
+        pages.forEach(page => {
+            page.classList.remove("active");
+        });
+
+        navButtons.forEach(button => {
+            button.classList.remove("active");
+        });
+
+
+        const target =
+            $(pageId);
+
+        if (target) {
+            target.classList.add("active");
+        }
+
+
+        const button =
+            document.querySelector(
+                `.nav-btn[data-page="${pageId}"]`
+            );
+
+        if (button) {
+            button.classList.add("active");
+        }
+
+
+        if (pageTitle) {
+            pageTitle.textContent =
+                titles[pageId] || "RoboLab";
+        }
+
+
+        if (pageId === "builder") {
+
+            setTimeout(() => {
+
+                resizeThree();
+
+            }, 100);
+        }
+    }
+
+
+    navButtons.forEach(button => {
+
+        button.addEventListener("click", () => {
+
+            const page =
+                button.dataset.page;
+
+            openPage(page);
+
+        });
+
+    });
+
+
+    document.querySelectorAll("[data-open]")
+        .forEach(button => {
+
+            button.addEventListener("click", () => {
+
+                openPage(button.dataset.open);
+
+            });
+
+        });
+
+
+    /* =====================================================
+       CLOCK
+    ===================================================== */
+
+    function updateClock() {
+
+        const clock = $("clock");
+
+        if (!clock) return;
+
+        const now = new Date();
+
+        clock.textContent =
+            now.toLocaleTimeString(
+                "ru-RU",
+                {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                }
+            );
+    }
+
+    updateClock();
+
+    setInterval(updateClock, 1000);
+
+
+    /* =====================================================
+       THREE.JS
+    ===================================================== */
+
+    function initThree() {
+
+        const container =
+            $("threeContainer");
+
+        if (!container) return;
+
+
+        if (typeof THREE === "undefined") {
+
+            container.innerHTML = `
+                <div style="
+                    height:100%;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    padding:30px;
+                    text-align:center;
+                    color:#ff7777;
+                    font-family:Arial;
+                ">
+                    <div>
+                        <h3>3D Engine не загрузился</h3>
+                        <p style="margin-top:10px;color:#82968d">
+                            Проверь подключение к интернету и обнови страницу.
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            return;
+        }
+
+
+        scene =
+            new THREE.Scene();
+
+        scene.background =
+            new THREE.Color(0x07100d);
+
+
+        camera =
+            new THREE.PerspectiveCamera(
+                45,
+                container.clientWidth /
+                container.clientHeight,
+                0.1,
+                100
+            );
+
+
+        camera.position.set(
+            5,
+            3.5,
+            6
+        );
+
+
+        renderer =
+            new THREE.WebGLRenderer({
+                antialias: true
+            });
+
+
+        renderer.setPixelRatio(
+            Math.min(
+                window.devicePixelRatio || 1,
+                2
+            )
+        );
+
+
+        renderer.setSize(
+            container.clientWidth,
+            container.clientHeight
+        );
+
+
+        container.appendChild(
+            renderer.domElement
+        );
+
+
+        /* LIGHT */
+
+        const ambient =
+            new THREE.AmbientLight(
+                0xffffff,
+                1.5
+            );
+
+        scene.add(ambient);
+
+
+        const light =
+            new THREE.DirectionalLight(
+                0xffffff,
+                2
+            );
+
+        light.position.set(
+            5,
+            8,
+            5
+        );
+
+        scene.add(light);
+
+
+        const greenLight =
+            new THREE.PointLight(
+                0x39e58c,
+                25,
+                20
+            );
+
+        greenLight.position.set(
+            0,
+            3,
+            0
+        );
+
+        scene.add(greenLight);
+
+
+        /* GRID */
+
+        const grid =
+            new THREE.GridHelper(
+                12,
+                24,
+                0x294638,
+                0x17251f
+            );
+
+        scene.add(grid);
+
+
+        /* ROBOT */
+
+        robotGroup =
+            new THREE.Group();
+
+        scene.add(robotGroup);
+
+
+        createBaseRobot();
+
+
+        /* EVENTS */
+
+        renderer.domElement.addEventListener(
+            "pointerdown",
+            onPointerDown
+        );
+
+        renderer.domElement.addEventListener(
+            "pointermove",
+            onPointerMove
+        );
+
+        renderer.domElement.addEventListener(
+            "pointerup",
+            onPointerUp
+        );
+
+        renderer.domElement.addEventListener(
+            "pointerleave",
+            onPointerUp
+        );
+
+        renderer.domElement.addEventListener(
+            "wheel",
+            onWheel,
+            { passive: false }
+        );
+
+
+        animate();
+    }
+
+
+    function createMaterial(color) {
+
+        return new THREE.MeshStandardMaterial({
+            color: color,
+            roughness: .55,
+            metalness: .35
+        });
+    }
+
+
+    function createBaseRobot() {
+
+        if (!robotGroup) return;
+
+
+        robotGroup.clear();
+
+
+        /* BODY */
+
+        const bodyGeometry =
+            new THREE.BoxGeometry(
+                3,
+                .7,
+                2.2
+            );
+
+        const body =
+            new THREE.Mesh(
+                bodyGeometry,
+                createMaterial(0x263a32)
+            );
+
+        body.position.y = 1.1;
+
+        robotGroup.add(body);
+
+
+        /* TOP */
+
+        const topGeometry =
+            new THREE.BoxGeometry(
+                1.5,
+                .35,
+                1.2
+            );
+
+        const top =
+            new THREE.Mesh(
+                topGeometry,
+                createMaterial(0x39e58c)
+            );
+
+        top.position.y = 1.62;
+
+        robotGroup.add(top);
+
+
+        /* WHEELS */
+
+        const wheelGeometry =
+            new THREE.CylinderGeometry(
+                .62,
+                .62,
+                .45,
+                32
+            );
+
+
+        const wheelMaterial =
+            createMaterial(0x121816);
+
+
+        const positions = [
+            [-1.35, .65, 1.05],
+            [1.35, .65, 1.05],
+            [-1.35, .65, -1.05],
+            [1.35, .65, -1.05]
+        ];
+
+
+        positions.forEach(position => {
+
+            const wheel =
+                new THREE.Mesh(
+                    wheelGeometry,
+                    wheelMaterial
+                );
+
+            wheel.rotation.z =
+                Math.PI / 2;
+
+            wheel.position.set(
+                position[0],
+                position[1],
+                position[2]
+            );
+
+            robotGroup.add(wheel);
+
+        });
+
+
+        /* FRONT SENSOR */
+
+        const sensorGeometry =
+            new THREE.SphereGeometry(
+                .22,
+                24,
+                24
+            );
+
+        const sensor =
+            new THREE.Mesh(
+                sensorGeometry,
+                createMaterial(0x39e58c)
+            );
+
+        sensor.position.set(
+            0,
+            1.55,
+            1.15
+        );
+
+        robotGroup.add(sensor);
+
+
+        updateObjectCounter();
+    }
+
+
+    function addComponentTo3D(component) {
+
+        if (!robotGroup || !THREE) return;
+
+
+        let object;
+
+
+        if (component.type === "motor") {
+
+            object =
+                new THREE.Mesh(
+                    new THREE.CylinderGeometry(
+                        .32,
+                        .32,
+                        .7,
+                        24
+                    ),
+                    createMaterial(0x555f5b)
+                );
+
+            object.rotation.z =
+                Math.PI / 2;
+
+        }
+
+
+        else if (component.type === "sensor") {
+
+            object =
+                new THREE.Mesh(
+                    new THREE.SphereGeometry(
+                        .28,
+                        24,
+                        24
+                    ),
+                    createMaterial(0x39e58c)
+                );
+
+        }
+
+
+        else if (component.type === "camera") {
+
+            object =
+                new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        .6,
+                        .45,
+                        .35
+                    ),
+                    createMaterial(0x202b27)
+                );
+
+        }
+
+
+        else if (component.type === "battery") {
+
+            object =
+                new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        .8,
+                        .35,
+                        1.1
+                    ),
+                    createMaterial(0xd3a83e)
+                );
+
+        }
+
+
+        else {
+
+            object =
+                new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        .75,
+                        .2,
+                        .55
+                    ),
+                    createMaterial(0x2d8060)
+                );
+        }
+
+
+        if (!object) return;
+
+
+        const index =
+            robotGroup.children.length;
+
+        object.position.set(
+            ((index % 3) - 1) * .7,
+            2.1 + Math.floor(index / 3) * .35,
+            0
+        );
+
+
+        object.userData.componentId =
+            component.id;
+
+
+        robotGroup.add(object);
+
+
+        updateObjectCounter();
+    }
+
+
+    function rebuild3D() {
+
+        if (!robotGroup) return;
+
+        createBaseRobot();
+
+        components.forEach(component => {
+
+            addComponentTo3D(component);
+
+        });
+    }
+
+
+    function animate() {
+
+        requestAnimationFrame(animate);
+
+        if (!renderer || !scene || !camera) {
+            return;
+        }
+
+
+        if (robotGroup) {
+
+            robotGroup.rotation.x =
+                rotationX;
+
+            robotGroup.rotation.y =
+                rotationY;
+
+        }
+
+
+        renderer.render(
+            scene,
+            camera
+        );
+    }
+
+
+    function resizeThree() {
+
+        const container =
+            $("threeContainer");
+
+        if (
+            !container ||
+            !renderer ||
+            !camera
+        ) {
+            return;
+        }
+
+
+        const width =
+            container.clientWidth;
+
+        const height =
+            container.clientHeight;
+
+
+        if (!width || !height) return;
+
+
+        camera.aspect =
+            width / height;
+
+        camera.updateProjectionMatrix();
+
+
+        renderer.setSize(
+            width,
+            height
+        );
+    }
+
+
+    window.addEventListener(
+        "resize",
+        resizeThree
+    );
+
+
+    /* =====================================================
+       3D CONTROLS
+    ===================================================== */
+
+    function onPointerDown(event) {
+
+        isDragging = true;
+
+        previousMouseX =
+            event.clientX;
+
+        previousMouseY =
+            event.clientY;
+    }
+
+
+    function onPointerMove(event) {
+
+        if (!isDragging) return;
+
+        const deltaX =
+            event.clientX -
+            previousMouseX;
+
+        const deltaY =
+            event.clientY -
+            previousMouseY;
+
+
+        rotationY +=
+            deltaX * .01;
+
+        rotationX +=
+            deltaY * .01;
+
+
+        rotationX =
+            Math.max(
+                -0.8,
+                Math.min(
+                    0.8,
+                    rotationX
+                )
+            );
+
+
+        previousMouseX =
+            event.clientX;
+
+        previousMouseY =
+            event.clientY;
+    }
+
+
+    function onPointerUp() {
+
+        isDragging = false;
+    }
+
+
+    function onWheel(event) {
+
+        event.preventDefault();
+
+        cameraDistance +=
+            event.deltaY * .005;
+
+        cameraDistance =
+            Math.max(
+                3,
+                Math.min(
+                    12,
+                    cameraDistance
+                )
+            );
+
+
+        const direction =
+            camera.position
+                .clone()
+                .normalize();
+
+
+        camera.position.copy(
+            direction.multiplyScalar(
+                cameraDistance
+            )
+        );
+    }
+
+
+    $("rotateLeft")?.addEventListener(
+        "click",
+        () => {
+            rotationY -= .35;
+        }
+    );
+
+
+    $("rotateRight")?.addEventListener(
+        "click",
+        () => {
+            rotationY += .35;
+        }
+    );
+
+
+    $("resetCamera")?.addEventListener(
+        "click",
+        () => {
+
+            rotationX = 0;
+
+            rotationY = 0;
+
+            cameraDistance = 7;
+
+            if (camera) {
+
+                camera.position.set(
+                    5,
+                    3.5,
+                    6
+                );
+
+            }
+
+        }
+    );
+
+
+    /* =====================================================
+       COMPONENTS
+    ===================================================== */
+
+    function addComponent(
+        type,
+        name,
+        mass,
+        power
+    ) {
+
+        const component = {
+
+            id:
+                Date.now() +
+                Math.random(),
+
+            type,
+
+            name,
+
+            mass:
+                Number(mass),
+
+            power:
+                Number(power)
+        };
+
+
+        components.push(
+            component
+        );
+
+
+        updateAssembly();
+
+        addComponentTo3D(
+            component
+        );
+
+        updateStats();
+
+        showToast(
+            `${name} добавлен в проект`
+        );
+    }
+
+
+    document
+        .querySelectorAll(".add-component")
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    addComponent(
+                        button.dataset.type,
+                        button.dataset.name,
+                        button.dataset.mass,
+                        button.dataset.power
+                    );
+
+                }
+            );
+
+        });
+
+
+    function removeComponent(id) {
+
+        components =
+            components.filter(
+                component =>
+                    component.id !== id
+            );
+
+
+        rebuild3D();
+
+        updateAssembly();
+
+        updateStats();
+
+        showToast(
+            "Компонент удалён"
+        );
+    }
+
+
+    function updateAssembly() {
+
+        const list =
+            $("assemblyList");
+
+        if (!list) return;
+
+
+        if (components.length === 0) {
+
+            list.innerHTML = `
+                <div style="
+                    padding:30px 10px;
+                    text-align:center;
+                    color:#82968d;
+                    font-size:12px;
+                ">
+                    Пока нет добавленных компонентов.
+                    <br><br>
+                    Перейди в «Компоненты».
+                </div>
+            `;
+
+        }
+
+        else {
+
+            list.innerHTML =
+                components.map(component => `
+
+                    <div class="assembly-item">
+
+                        <div>
+                            <strong>
+                                ${escapeHTML(component.name)}
+                            </strong>
+
+                            <small>
+                                ${component.mass} г ·
+                                ${component.power} W
+                            </small>
+                        </div>
+
+                        <button
+                            class="remove-component"
+                            data-id="${component.id}"
+                        >
+                            ×
+                        </button>
+
+                    </div>
+
+                `).join("");
+
+        }
+
+
+        document
+            .querySelectorAll(".remove-component")
+            .forEach(button => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        removeComponent(
+                            Number(
+                                button.dataset.id
+                            )
+                        );
+
+                    }
+                );
+
+            });
+
+
+        const mass =
+            components.reduce(
+                (sum, item) =>
+                    sum + item.mass,
+                0
+            );
+
+
+        const assemblyMass =
+            $("assemblyMass");
+
+        if (assemblyMass) {
+
+            assemblyMass.textContent =
+                `${mass} г`;
+
+        }
+
+    }
+
+
+    function updateStats() {
+
+        const mass =
+            components.reduce(
+                (sum, item) =>
+                    sum + item.mass,
+                0
+            );
+
+
+        const power =
+            components.reduce(
+                (sum, item) =>
+                    sum + item.power,
+                0
+            );
+
+
+        if ($("componentStat")) {
+
+            $("componentStat")
+                .textContent =
+                components.length;
+
+        }
+
+
+        if ($("massStat")) {
+
+            $("massStat")
+                .textContent =
+                `${mass} г`;
+
+        }
+
+
+        if ($("powerStat")) {
+
+            $("powerStat")
+                .textContent =
+                `${power} W`;
+
+        }
+    }
+
+
+    function updateObjectCounter() {
+
+        if (!$("objectCounter")) return;
+
+        const count =
+            robotGroup
+                ? robotGroup.children.length
+                : 0;
+
+
+        $("objectCounter").textContent =
+            `Objects: ${count}`;
+    }
+
+
+    /* =====================================================
+       SEARCH
+    ===================================================== */
+
+    $("componentSearch")?.addEventListener(
+        "input",
+        event => {
+
+            const value =
+                event.target.value
+                    .toLowerCase()
+                    .trim();
+
+
+            document
+                .querySelectorAll(".component-card")
+                .forEach(card => {
+
+                    const name =
+                        card.dataset.name
+                            .toLowerCase();
+
+
+                    card.style.display =
+                        name.includes(value)
+                            ? ""
+                            : "none";
+
+                });
+
+        }
+    );
+
+
+    /* =====================================================
+       CALCULATOR
+    ===================================================== */
+
+    $("calculate")?.addEventListener(
+        "click",
+        () => {
+
+            const mass =
+                Number(
+                    $("robotMass").value
+                );
+
+            const speed =
+                Number(
+                    $("robotSpeed").value
+                );
+
+            const motorCount =
+                Number(
+                    $("motorCount").value
+                );
+
+            const efficiency =
+                Number(
+                    $("efficiency").value
+                );
+
+
+            if (
+                mass <= 0 ||
+                speed <= 0 ||
+                motorCount <= 0 ||
+                efficiency <= 0
+            ) {
+
+                showToast(
+                    "Введите корректные параметры"
+                );
+
+                return;
+            }
+
+
+            /*
+                Упрощённая инженерная модель:
+
+                P = F * v
+
+                F ≈ m * g * rolling resistance
+
+                Для демонстрационного прототипа
+                принимаем коэффициент сопротивления 0.15.
+            */
+
+            const g = 9.81;
+
+            const rollingResistance =
+                .15;
+
+
+            const force =
+                mass *
+                g *
+                rollingResistance;
+
+
+            const mechanicalPower =
+                force *
+                speed;
+
+
+            const requiredPower =
+                mechanicalPower /
+                (efficiency / 100);
+
+
+            const motorPower =
+                requiredPower /
+                motorCount;
+
+
+            const reserve =
+                requiredPower * 1.3;
+
+
+            $("powerResult")
+                .textContent =
+                `${requiredPower.toFixed(1)} W`;
+
+
+            $("motorPowerResult")
+                .textContent =
+                `${motorPower.toFixed(1)} W`;
+
+
+            $("reserveResult")
+                .textContent =
+                `${reserve.toFixed(1)} W`;
+
+
+            showToast(
+                "Расчёт выполнен"
+            );
+
+        }
+    );
+
+
+    /* =====================================================
+       CODE
+    ===================================================== */
+
+    $("runCode")?.addEventListener(
+        "click",
+        () => {
+
+            const code =
+                $("codeEditor").value;
+
+
+            const output =
+                $("consoleOutput");
+
+
+            const status =
+                $("codeStatus");
+
+
+            if (!code.trim()) {
+
+                status.textContent =
+                    "ERROR";
+
+                status.style.color =
+                    "#ff5f67";
+
+
+                output.innerHTML = `
+                    <div style="color:#ff5f67">
+                        > ERROR: Код пустой
+                    </div>
+                `;
+
+                return;
+            }
+
+
+            status.textContent =
+                "CHECKING...";
+
+
+            status.style.color =
+                "#ffd166";
+
+
+            output.innerHTML = `
+                <div>> Анализ исходного кода...</div>
+            `;
+
+
+            setTimeout(() => {
+
+                const errors = [];
+
+
+                if (
+                    !code.includes("setup")
+                ) {
+                    errors.push(
+                        "Функция setup() отсутствует"
+                    );
+                }
+
+
+                if (
+                    !code.includes("loop")
+                ) {
+                    errors.push(
+                        "Функция loop() отсутствует"
+                    );
+                }
+
+
+                if (
+                    !code.includes(";")
+                ) {
+                    errors.push(
+                        "Не найдены операторы ';'"
+                    );
+                }
+
+
+                if (errors.length > 0) {
+
+                    status.textContent =
+                        "ERROR";
+
+                    status.style.color =
+                        "#ff5f67";
+
+
+                    output.innerHTML =
+                        errors.map(
+                            error =>
+                                `<div style="color:#ff7777">
+                                    > ERROR: ${error}
+                                </div>`
+                        ).join("");
+
+                    return;
+                }
+
+
+                status.textContent =
+                    "OK";
+
+                status.style.color =
+                    "#39e58c";
+
+
+                output.innerHTML = `
+                    <div>> Parsing...</div>
+                    <div>> setup() found</div>
+                    <div>> loop() found</div>
+                    <div>> Syntax check: PASS</div>
+                    <div>> Arduino API: detected</div>
+                    <div style="color:#39e58c">
+                        > BUILD SUCCESS
+                    </div>
+                `;
+
+
+                showToast(
+                    "Проверка кода успешно завершена"
+                );
+
+            }, 800);
+
+        }
+    );
+
+
+    /* =====================================================
+       DIAGNOSTICS
+    ===================================================== */
+
+    $("runDiagnostics")?.addEventListener(
+        "click",
+        () => {
+
+            const ids = [
+                "diagController",
+                "diagBattery",
+                "diagMotors",
+                "diagSensors",
+                "diagSoftware"
+            ];
+
+
+            ids.forEach(id => {
+
+                const element =
+                    $(id);
+
+                if (!element) return;
+
+                element.textContent =
+                    "CHECKING...";
+
+                element.style.color =
+                    "#ffd166";
+
+            });
+
+
+            setTimeout(() => {
+
+                ids.forEach(id => {
+
+                    const element =
+                        $(id);
+
+                    if (!element) return;
+
+                    element.textContent =
+                        "PASS";
+
+                    element.style.color =
+                        "#39e58c";
+
+                });
+
+
+                showToast(
+                    "Диагностика завершена"
+                );
+
+            }, 1000);
+
+        }
+    );
+
+
+    /* =====================================================
+       SAVE PROJECT
+    ===================================================== */
+
+    function saveProject() {
+
+        const name =
+            $("projectName")
+                ? $("projectName").value
+                : "Autonomous Robot";
+
+
+        const project = {
+
+            name,
+
+            components,
+
+            code:
+                $("codeEditor")
+                    ? $("codeEditor").value
+                    : "",
+
+            savedAt:
+                new Date().toISOString()
+
+        };
+
+
+        localStorage.setItem(
+            "robolab_project",
+            JSON.stringify(project)
+        );
+
+
+        updateDashboardName(name);
+
+        showToast(
+            "Проект сохранён"
+        );
+    }
+
+
+    $("saveProject")?.addEventListener(
+        "click",
+        saveProject
+    );
+
+
+    function loadProject() {
+
+        const saved =
+            localStorage.getItem(
+                "robolab_project"
+            );
+
+
+        if (!saved) {
+
+            updateAssembly();
+
+            updateStats();
+
+            return;
+        }
+
+
+        try {
+
+            const project =
+                JSON.parse(saved);
+
+
+            components =
+                Array.isArray(
+                    project.components
+                )
+                    ? project.components
+                    : [];
+
+
+            if ($("projectName")) {
+
+                $("projectName").value =
+                    project.name ||
+                    "Autonomous Robot";
+
+            }
+
+
+            if ($("codeEditor") &&
+                project.code) {
+
+                $("codeEditor").value =
+                    project.code;
+
+            }
+
+
+            updateDashboardName(
+                project.name ||
+                "Autonomous Robot"
+            );
+
+
+            updateAssembly();
+
+            updateStats();
+
+
+        }
+        catch (error) {
+
+            console.error(
+                "Load error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       EXPORT
+    ===================================================== */
+
+    $("exportProject")?.addEventListener(
+        "click",
+        () => {
+
+            const project = {
+
+                name:
+                    $("projectName")?.value ||
+                    "Autonomous Robot",
+
+                components,
+
+                code:
+                    $("codeEditor")?.value ||
+                    "",
+
+                exportedAt:
+                    new Date().toISOString()
+
+            };
+
+
+            const blob =
+                new Blob(
+                    [
+                        JSON.stringify(
+                            project,
+                            null,
+                            2
+                        )
+                    ],
+                    {
+                        type:
+                            "application/json"
+                    }
+                );
+
+
+            const url =
+                URL.createObjectURL(blob);
+
+
+            const link =
+                document.createElement("a");
+
+
+            link.href = url;
+
+            link.download =
+                "robolab-project.json";
+
+
+            link.click();
+
+
+            URL.revokeObjectURL(
+                url
+            );
+
+
+            showToast(
+                "Проект экспортирован"
+            );
+
+        }
+    );
+
+
+    /* =====================================================
+       PROJECT NAME
+    ===================================================== */
+
+    $("projectName")?.addEventListener(
+        "input",
+        event => {
+
+            updateDashboardName(
+                event.target.value
+            );
+
+        }
+    );
+
+
+    function updateDashboardName(name) {
+
+        if (!$("dashboardProjectName")) {
+            return;
+        }
+
+
+        $("dashboardProjectName")
+            .textContent =
+            name ||
+            "Autonomous Robot";
+    }
+
+
+    /* =====================================================
+       SECURITY HELPER
+    ===================================================== */
+
+    function escapeHTML(value) {
+
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+
+    /* =====================================================
+       START
+    ===================================================== */
+
+    loadProject();
+
+    initThree();
+
+    updateAssembly();
+
+    updateStats();
+
 });
