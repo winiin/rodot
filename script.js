@@ -1,1694 +1,628 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", function () {
+  "use strict";
 
-    "use strict";
+  const $ = function (id) { return document.getElementById(id); };
+  const STORAGE = {
+    readings: "aether_readings_v1",
+    points: "aether_map_points_v1",
+    journal: "aether_journal_v1",
+    checks: "aether_checklist_v1"
+  };
 
-
-    /* =====================================================
-       STATE
-    ===================================================== */
-
-    let components = [];
-
-    let scene;
-    let camera;
-    let renderer;
-
-    let robotGroup;
-
-    let isDragging = false;
-
-    let previousMouseX = 0;
-    let previousMouseY = 0;
-
-    let rotationX = 0;
-    let rotationY = 0;
-
-    let cameraDistance = 7;
-
-
-    /* =====================================================
-       HELPERS
-    ===================================================== */
-
-    function $(id) {
-        return document.getElementById(id);
+  function readStore(key, fallback) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || "null");
+      return value === null ? fallback : value;
+    } catch (error) {
+      console.warn("Не удалось прочитать локальные данные:", key, error);
+      return fallback;
     }
+  }
 
-
-    function showToast(message) {
-
-        const toast = $("toast");
-
-        if (!toast) return;
-
-        toast.textContent = message;
-
-        toast.classList.add("show");
-
-        setTimeout(() => {
-            toast.classList.remove("show");
-        }, 2200);
+  function writeStore(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (error) {
+      console.error("Не удалось сохранить данные:", key, error);
+      toast("Не удалось сохранить данные в браузере.");
+      return false;
     }
+  }
 
+  let readings = readStore(STORAGE.readings, []);
+  let points = readStore(STORAGE.points, []);
+  let journal = readStore(STORAGE.journal, []);
+  let checklist = readStore(STORAGE.checks, {});
+  if (!Array.isArray(readings)) readings = [];
+  if (!Array.isArray(points)) points = [];
+  if (!Array.isArray(journal)) journal = [];
+  if (!checklist || typeof checklist !== "object") checklist = {};
 
-    /* =====================================================
-       NAVIGATION
-    ===================================================== */
+  let serialPort = null;
+  let serialReader = null;
+  let serialConnected = false;
+  let serialBuffer = "";
+  let toastTimer = null;
 
-    const navButtons =
-        document.querySelectorAll(".nav-btn");
+  function toast(message) {
+    const element = $("toast");
+    if (!element) return;
+    element.textContent = message;
+    element.classList.add("show");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      element.classList.remove("show");
+    }, 2600);
+  }
 
-    const pages =
-        document.querySelectorAll(".page");
+  function formatTime(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Время не указано";
+    return date.toLocaleString("ru-RU", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit", second: "2-digit"
+    });
+  }
 
-    const pageTitle =
-        $("pageTitle");
+  function displayNumber(value, digits) {
+    if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+    return value.toFixed(digits == null ? 1 : digits).replace(".", ",");
+  }
 
+  function addJournalEntry(title, description, kind) {
+    journal.unshift({
+      id: Date.now() + "-" + Math.random().toString(16).slice(2),
+      title: String(title),
+      description: String(description || ""),
+      kind: kind || "note",
+      timestamp: new Date().toISOString()
+    });
+    journal = journal.slice(0, 500);
+    writeStore(STORAGE.journal, journal);
+    renderJournal();
+  }
 
-    const titles = {
-        dashboard: "Главная",
-        builder: "3D Сборка",
-        components: "Компоненты",
-        electronics: "Электроника",
-        code: "RoboCode",
-        calculator: "Расчёты",
-        testing: "Диагностика",
-        documentation: "Документация"
+  function setConnection(connected, detail) {
+    serialConnected = connected;
+    const label = connected ? "Подключён" : "Не подключён";
+    const sub = connected ? (detail || "Получение телеметрии") : "Ожидание источника данных";
+    ["connectionLabel", "telemetryStatus"].forEach(function (id) {
+      const el = $(id);
+      if (el) el.textContent = connected ? (id === "telemetryStatus" ? "Получение данных от контроллера" : label) : (id === "telemetryStatus" ? "Источник данных не подключён" : label);
+    });
+    if ($("connectionSub")) $("connectionSub").textContent = sub;
+    if ($("topConnection")) $("topConnection").textContent = connected ? "CONNECTED" : "OFFLINE";
+    if ($("metricConnection")) $("metricConnection").textContent = connected ? "ONLINE" : "OFFLINE";
+    if ($("metricConnectionNote")) $("metricConnectionNote").textContent = connected ? "Контроллер передаёт данные" : "Источник данных не подключён";
+    const connect = $("connectSerial");
+    const disconnect = $("disconnectSerial");
+    if (connect) connect.disabled = connected;
+    if (disconnect) disconnect.disabled = !connected;
+    const dot = document.querySelector(".system-pill .live-dot");
+    if (dot) dot.style.background = connected ? "#72e2b0" : "";
+    renderHomeMetrics();
+  }
+
+  function addReading(raw, source) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return false;
+    const reading = {
+      timestamp: raw.timestamp ? new Date(raw.timestamp).toISOString() : new Date().toISOString(),
+      soil: toValidNumber(raw.soil, 0, 100),
+      temperature: toValidNumber(raw.temperature, -50, 100),
+      humidity: toValidNumber(raw.humidity, 0, 100),
+      source: source || "Serial"
     };
+    if (reading.soil === null && reading.temperature === null && reading.humidity === null) return false;
+    readings.push(reading);
+    readings = readings.slice(-5000);
+    writeStore(STORAGE.readings, readings);
+    const detail = [
+      reading.soil === null ? "" : "почва " + displayNumber(reading.soil) + "%",
+      reading.temperature === null ? "" : "температура " + displayNumber(reading.temperature) + " °C",
+      reading.humidity === null ? "" : "влажность воздуха " + displayNumber(reading.humidity) + "%"
+    ].filter(Boolean).join("; ");
+    addJournalEntry("Получено измерение", detail + " · Источник: " + reading.source, "reading");
+    renderAllData();
+    return true;
+  }
 
+  function toValidNumber(value, min, max) {
+    if (value === "" || value === null || value === undefined) return null;
+    const number = Number(value);
+    if (!Number.isFinite(number) || number < min || number > max) return null;
+    return number;
+  }
 
-    function openPage(pageId) {
+  function renderHomeMetrics() {
+    const latest = readings.length ? readings[readings.length - 1] : null;
+    if ($("metricSoil")) $("metricSoil").innerHTML = latest && latest.soil !== null ? displayNumber(latest.soil) + ' <small>%</small>' : '— <small>%</small>';
+    if ($("metricTemp")) $("metricTemp").innerHTML = latest && latest.temperature !== null ? displayNumber(latest.temperature) + ' <small>°C</small>' : '— <small>°C</small>';
+    if ($("metricAir")) $("metricAir").innerHTML = latest && latest.humidity !== null ? displayNumber(latest.humidity) + ' <small>%</small>' : '— <small>%</small>';
+  }
 
-        pages.forEach(page => {
-            page.classList.remove("active");
-        });
-
-        navButtons.forEach(button => {
-            button.classList.remove("active");
-        });
-
-
-        const target =
-            $(pageId);
-
-        if (target) {
-            target.classList.add("active");
-        }
-
-
-        const button =
-            document.querySelector(
-                `.nav-btn[data-page="${pageId}"]`
-            );
-
-        if (button) {
-            button.classList.add("active");
-        }
-
-
-        if (pageTitle) {
-            pageTitle.textContent =
-                titles[pageId] || "RoboLab";
-        }
-
-
-        if (pageId === "builder") {
-
-            setTimeout(() => {
-
-                resizeThree();
-
-            }, 100);
-        }
-    }
-
-
-    navButtons.forEach(button => {
-
-        button.addEventListener("click", () => {
-
-            const page =
-                button.dataset.page;
-
-            openPage(page);
-
-        });
-
+  function renderTelemetry() {
+    const latest = readings.length ? readings[readings.length - 1] : null;
+    const values = [
+      { value: latest ? latest.soil : null, valueId: "soilValue", barId: "soilBar", timeId: "soilTime", suffix: "%", max: 100 },
+      { value: latest ? latest.temperature : null, valueId: "tempValue", barId: "tempBar", timeId: "tempTime", suffix: "°C", max: 50 },
+      { value: latest ? latest.humidity : null, valueId: "airValue", barId: "airBar", timeId: "airTime", suffix: "%", max: 100 }
+    ];
+    values.forEach(function (item) {
+      const valueEl = $(item.valueId);
+      if (valueEl) valueEl.innerHTML = (item.value === null ? "—" : displayNumber(item.value)) + "<small>" + item.suffix + "</small>";
+      const bar = $(item.barId);
+      if (bar) bar.style.width = item.value === null ? "0%" : Math.max(0, Math.min(100, item.value / item.max * 100)) + "%";
+      const time = $(item.timeId);
+      if (time) time.textContent = latest && item.value !== null ? "Последнее: " + formatTime(latest.timestamp) : "Нет измерений";
     });
 
-
-    document.querySelectorAll("[data-open]")
-        .forEach(button => {
-
-            button.addEventListener("click", () => {
-
-                openPage(button.dataset.open);
-
-            });
-
+    const body = $("readingsBody");
+    if (body) {
+      const rows = readings.slice(-12).reverse();
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="5" class="empty-table">Измерений пока нет. Здесь появятся реальные полученные значения.</td></tr>';
+      } else {
+        body.textContent = "";
+        rows.forEach(function (item) {
+          const tr = document.createElement("tr");
+          [formatTime(item.timestamp), item.soil == null ? "—" : displayNumber(item.soil) + " %", item.temperature == null ? "—" : displayNumber(item.temperature) + " °C", item.humidity == null ? "—" : displayNumber(item.humidity) + " %", item.source || "Импорт"].forEach(function (value) {
+            const td = document.createElement("td");
+            td.textContent = value;
+            tr.appendChild(td);
+          });
+          body.appendChild(tr);
         });
-
-
-    /* =====================================================
-       CLOCK
-    ===================================================== */
-
-    function updateClock() {
-
-        const clock = $("clock");
-
-        if (!clock) return;
-
-        const now = new Date();
-
-        clock.textContent =
-            now.toLocaleTimeString(
-                "ru-RU",
-                {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit"
-                }
-            );
+      }
     }
-
-    updateClock();
-
-    setInterval(updateClock, 1000);
-
-
-    /* =====================================================
-       THREE.JS
-    ===================================================== */
-
-    function initThree() {
-
-        const container =
-            $("threeContainer");
-
-        if (!container) return;
-
-
-        if (typeof THREE === "undefined") {
-
-            container.innerHTML = `
-                <div style="
-                    height:100%;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    padding:30px;
-                    text-align:center;
-                    color:#ff7777;
-                    font-family:Arial;
-                ">
-                    <div>
-                        <h3>3D Engine не загрузился</h3>
-                        <p style="margin-top:10px;color:#82968d">
-                            Проверь подключение к интернету и обнови страницу.
-                        </p>
-                    </div>
-                </div>
-            `;
-
-            return;
-        }
-
-
-        scene =
-            new THREE.Scene();
-
-        scene.background =
-            new THREE.Color(0x07100d);
-
-
-        camera =
-            new THREE.PerspectiveCamera(
-                45,
-                container.clientWidth /
-                container.clientHeight,
-                0.1,
-                100
-            );
-
-
-        camera.position.set(
-            5,
-            3.5,
-            6
-        );
-
-
-        renderer =
-            new THREE.WebGLRenderer({
-                antialias: true
-            });
-
-
-        renderer.setPixelRatio(
-            Math.min(
-                window.devicePixelRatio || 1,
-                2
-            )
-        );
-
-
-        renderer.setSize(
-            container.clientWidth,
-            container.clientHeight
-        );
-
-
-        container.appendChild(
-            renderer.domElement
-        );
-
-
-        /* LIGHT */
-
-        const ambient =
-            new THREE.AmbientLight(
-                0xffffff,
-                1.5
-            );
-
-        scene.add(ambient);
-
-
-        const light =
-            new THREE.DirectionalLight(
-                0xffffff,
-                2
-            );
-
-        light.position.set(
-            5,
-            8,
-            5
-        );
-
-        scene.add(light);
-
-
-        const greenLight =
-            new THREE.PointLight(
-                0x39e58c,
-                25,
-                20
-            );
-
-        greenLight.position.set(
-            0,
-            3,
-            0
-        );
-
-        scene.add(greenLight);
-
-
-        /* GRID */
-
-        const grid =
-            new THREE.GridHelper(
-                12,
-                24,
-                0x294638,
-                0x17251f
-            );
-
-        scene.add(grid);
-
-
-        /* ROBOT */
-
-        robotGroup =
-            new THREE.Group();
-
-        scene.add(robotGroup);
-
-
-        createBaseRobot();
-
-
-        /* EVENTS */
-
-        renderer.domElement.addEventListener(
-            "pointerdown",
-            onPointerDown
-        );
-
-        renderer.domElement.addEventListener(
-            "pointermove",
-            onPointerMove
-        );
-
-        renderer.domElement.addEventListener(
-            "pointerup",
-            onPointerUp
-        );
-
-        renderer.domElement.addEventListener(
-            "pointerleave",
-            onPointerUp
-        );
-
-        renderer.domElement.addEventListener(
-            "wheel",
-            onWheel,
-            { passive: false }
-        );
-
-
-        animate();
+    if ($("telemetryStatus") && !serialConnected) {
+      $("telemetryStatus").textContent = readings.length ? "Показаны сохранённые измерения" : "Источник данных не подключён";
     }
+  }
 
+  function average(key) {
+    const values = readings.map(function (item) { return item[key]; }).filter(function (value) { return typeof value === "number" && Number.isFinite(value); });
+    if (!values.length) return null;
+    return values.reduce(function (sum, value) { return sum + value; }, 0) / values.length;
+  }
 
-    function createMaterial(color) {
+  function renderAnalytics() {
+    if ($("totalReadings")) $("totalReadings").textContent = String(readings.length);
+    if ($("avgSoil")) $("avgSoil").textContent = average("soil") === null ? "—" : displayNumber(average("soil")) + " %";
+    if ($("avgTemp")) $("avgTemp").textContent = average("temperature") === null ? "—" : displayNumber(average("temperature")) + " °C";
+    if ($("avgHumidity")) $("avgHumidity").textContent = average("humidity") === null ? "—" : displayNumber(average("humidity")) + " %";
 
-        return new THREE.MeshStandardMaterial({
-            color: color,
-            roughness: .55,
-            metalness: .35
+    drawChart("soilChart", "soil", "soilChartEmpty");
+    drawChart("tempChart", "temperature", "tempChartEmpty");
+    drawChart("humidityChart", "humidity", "humidityChartEmpty");
+
+    const insight = $("insightText");
+    if (insight) {
+      const count = readings.length;
+      if (!count) {
+        insight.textContent = "После первых измерений здесь появится краткая сводка по доступным показателям. Пороговые значения влажности почвы зависят от типа грунта и культуры — сайт не будет выдавать универсальную рекомендацию без калибровки.";
+      } else {
+        const parts = ["Сохранено измерений: " + count + "."];
+        if (average("soil") !== null) parts.push("Средняя влажность почвы: " + displayNumber(average("soil")) + "%.");
+        if (average("temperature") !== null) parts.push("Средняя температура: " + displayNumber(average("temperature")) + " °C.");
+        if (average("humidity") !== null) parts.push("Средняя влажность воздуха: " + displayNumber(average("humidity")) + "%.");
+        parts.push("Это статистическая сводка, а не автоматическая рекомендация по поливу.");
+        insight.textContent = parts.join(" ");
+      }
+    }
+  }
+
+  function drawChart(canvasId, key, emptyId) {
+    const canvas = $(canvasId);
+    const empty = $(emptyId);
+    if (!canvas) return;
+    const pointsData = readings.filter(function (item) { return typeof item[key] === "number" && Number.isFinite(item[key]); }).slice(-30);
+    if (empty) empty.style.display = pointsData.length ? "none" : "block";
+
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(240, Math.floor(rect.width || canvas.parentElement.clientWidth || 320));
+    const height = 190;
+    const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+    canvas.style.height = height + "px";
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(ratio, ratio);
+    ctx.clearRect(0, 0, width, height);
+
+    const left = 34, right = 12, top = 12, bottom = 25;
+    const chartW = width - left - right;
+    const chartH = height - top - bottom;
+    ctx.font = "10px Manrope, sans-serif";
+    ctx.strokeStyle = "rgba(130,160,195,.22)";
+    ctx.fillStyle = "#8fa7c9";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = top + chartH * i / 4;
+      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(width - right, y); ctx.stroke();
+    }
+    if (!pointsData.length) return;
+
+    const raw = pointsData.map(function (item) { return item[key]; });
+    let min = Math.min.apply(null, raw), max = Math.max.apply(null, raw);
+    if (min === max) { min -= 1; max += 1; }
+    const padding = (max - min) * .15;
+    min -= padding; max += padding;
+    ctx.fillStyle = "#8fa7c9";
+    ctx.textAlign = "right";
+    ctx.fillText(displayNumber(max), left - 6, top + 4);
+    ctx.fillText(displayNumber(min), left - 6, top + chartH);
+    const coords = raw.map(function (value, index) {
+      return { x: left + (raw.length === 1 ? chartW / 2 : chartW * index / (raw.length - 1)), y: top + chartH - ((value - min) / (max - min)) * chartH };
+    });
+    ctx.beginPath();
+    coords.forEach(function (point, index) { if (index === 0) ctx.moveTo(point.x, point.y); else ctx.lineTo(point.x, point.y); });
+    ctx.strokeStyle = "#83e3ff";
+    ctx.lineWidth = 2.4;
+    ctx.lineJoin = "round";
+    ctx.stroke();
+    coords.forEach(function (point) {
+      ctx.beginPath(); ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffd27c"; ctx.fill();
+    });
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#8fa7c9";
+    ctx.fillText("последние " + raw.length + " точек", left, height - 5);
+  }
+
+  function renderJournal() {
+    const container = $("journalEntries");
+    if ($("journalCount")) $("journalCount").textContent = String(journal.length);
+    if (!container) return;
+    if (!journal.length) {
+      container.innerHTML = '<div class="empty-state">Журнал пока пуст. Подключи источник данных или добавь заметку.</div>';
+      return;
+    }
+    container.textContent = "";
+    journal.forEach(function (entry) {
+      const row = document.createElement("div");
+      row.className = "journal-entry";
+      const time = document.createElement("time");
+      time.textContent = formatTime(entry.timestamp);
+      const body = document.createElement("div");
+      const title = document.createElement("b");
+      title.textContent = entry.title || "Запись";
+      const description = document.createElement("p");
+      description.textContent = entry.description || "";
+      body.appendChild(title);
+      body.appendChild(description);
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "Удалить";
+      remove.setAttribute("aria-label", "Удалить запись журнала");
+      remove.addEventListener("click", function () {
+        journal = journal.filter(function (item) { return item.id !== entry.id; });
+        writeStore(STORAGE.journal, journal);
+        renderJournal();
+      });
+      row.appendChild(time);
+      row.appendChild(body);
+      row.appendChild(remove);
+      container.appendChild(row);
+    });
+  }
+
+  function renderMap() {
+    const layer = $("routeLayer");
+    const list = $("pointList");
+    if ($("mapPointCount")) $("mapPointCount").textContent = points.length + " PLANNED POINTS";
+    if (layer) {
+      layer.textContent = "";
+      if (points.length > 1) {
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+        path.setAttribute("points", points.map(function (p) { return p.x + "," + p.y; }).join(" "));
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", "#83e3ff");
+        path.setAttribute("stroke-width", "3");
+        path.setAttribute("stroke-dasharray", "7 7");
+        path.setAttribute("stroke-linecap", "round");
+        path.setAttribute("stroke-linejoin", "round");
+        layer.appendChild(path);
+      }
+      points.forEach(function (point, index) {
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", point.x); circle.setAttribute("cy", point.y); circle.setAttribute("r", "9");
+        circle.setAttribute("fill", "#ffd27c"); circle.setAttribute("stroke", "#fff0c7"); circle.setAttribute("stroke-width", "2");
+        layer.appendChild(circle);
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("x", point.x + 13); label.setAttribute("y", point.y - 11);
+        label.setAttribute("fill", "#eaf5ff"); label.setAttribute("font-size", "13"); label.textContent = "P" + (index + 1);
+        layer.appendChild(label);
+      });
+    }
+    if (list) {
+      if (!points.length) {
+        list.innerHTML = '<div class="empty-state">На плане пока нет точек. Добавь первую точку на карте.</div>';
+      } else {
+        list.textContent = "";
+        points.forEach(function (point, index) {
+          const row = document.createElement("div"); row.className = "point-row";
+          const title = document.createElement("b"); title.textContent = "Точка " + (index + 1);
+          const coords = document.createElement("small"); coords.textContent = "X: " + Math.round(point.x) + " · Y: " + Math.round(point.y);
+          const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "Удалить";
+          remove.addEventListener("click", function () {
+            points = points.filter(function (item) { return item.id !== point.id; });
+            writeStore(STORAGE.points, points); renderMap();
+          });
+          row.appendChild(title); row.appendChild(coords); row.appendChild(remove); list.appendChild(row);
         });
+      }
     }
+  }
 
+  function addMapPoint(x, y) {
+    if (points.length >= 40) { toast("В плане уже 40 точек. Удали лишние перед добавлением."); return; }
+    points.push({ id: Date.now() + "-" + Math.random().toString(16).slice(2), x: Math.max(20, Math.min(880, x)), y: Math.max(20, Math.min(500, y)), createdAt: new Date().toISOString() });
+    writeStore(STORAGE.points, points);
+    renderMap();
+  }
 
-    function createBaseRobot() {
+  function csvCell(value) {
+    const text = String(value == null ? "" : value);
+    return '"' + text.replace(/"/g, '""') + '"';
+  }
 
-        if (!robotGroup) return;
+  function downloadFile(filename, content, type) {
+    const blob = new Blob([content], { type: type || "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url; link.download = filename;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
 
-        robotGroup.clear();
+  function exportReadings() {
+    if (!readings.length) { toast("Пока нет измерений для экспорта."); return; }
+    const lines = [["timestamp", "soil", "temperature", "humidity", "source"].join(",")];
+    readings.forEach(function (item) {
+      lines.push([item.timestamp, item.soil, item.temperature, item.humidity, item.source].map(csvCell).join(","));
+    });
+    downloadFile("aether-readings.csv", "\uFEFF" + lines.join("\r\n"), "text/csv;charset=utf-8");
+  }
 
-        /*
-         * AETHER tracked field robot.
-         * Keep the site UI intact; only replace the 3D robot model.
-         * Layout is based on the team's described real build:
-         * tracked chassis, battery, motor driver, control board and Bluetooth module.
-         */
-
-        const mat = (color, roughness = .72, metalness = .18) =>
-            new THREE.MeshStandardMaterial({ color, roughness, metalness });
-
-        const chassisMat = mat(0x303a3d, .82, .28);
-        const edgeMat = mat(0x596367, .55, .48);
-        const trackMat = mat(0x171c1e, .94, .04);
-        const rubberMat = mat(0x252b2d, .96, .02);
-        const metalMat = mat(0x899398, .38, .72);
-        const pcbMat = mat(0x174b42, .78, .12);
-        const boardBlue = mat(0x174d75, .72, .18);
-        const batteryMat = mat(0x252c31, .72, .22);
-        const wireRed = mat(0x9e302b, .7, .05);
-        const wireBlack = mat(0x15191b, .8, .02);
-        const connectorMat = mat(0xc0a65d, .5, .45);
-
-        const addBox = (w, h, d, material, x, y, z, bevel = false) => {
-            const mesh = new THREE.Mesh(
-                new THREE.BoxGeometry(w, h, d),
-                material
-            );
-            mesh.position.set(x, y, z);
-            robotGroup.add(mesh);
-            return mesh;
-        };
-
-        const addCylinder = (radius, depth, material, x, y, z, segments = 32) => {
-            const mesh = new THREE.Mesh(
-                new THREE.CylinderGeometry(radius, radius, depth, segments),
-                material
-            );
-            mesh.rotation.z = Math.PI / 2;
-            mesh.position.set(x, y, z);
-            robotGroup.add(mesh);
-            return mesh;
-        };
-
-        /* Low, practical tracked chassis */
-        addBox(2.45, .34, 2.55, chassisMat, 0, .83, 0);
-        addBox(2.2, .12, 2.28, edgeMat, 0, 1.06, -.02);
-        addBox(2.05, .08, 2.12, chassisMat, 0, 1.15, -.02);
-
-        /* Side track assemblies: belt housings and visible road wheels */
-        [-1.36, 1.36].forEach(x => {
-            addBox(.28, .82, 2.72, trackMat, x, .58, 0);
-
-            [-.91, 0, .91].forEach(z => {
-                addCylinder(.34, .34, rubberMat, x, .58, z, 40);
-                addCylinder(.19, .355, metalMat, x, .58, z, 32);
-                addCylinder(.075, .37, chassisMat, x, .58, z, 24);
-            });
-
-            [-.91, .91].forEach(z => {
-                addCylinder(.095, .37, connectorMat, x, .58, z, 20);
-            });
-
-            /* Track tread blocks along the visible outer side */
-            for (let i = 0; i < 9; i++) {
-                const z = -.99 + i * .2475;
-                addBox(.035, .12, .17, edgeMat, x + (x > 0 ? .15 : -.15), .58, z);
-            }
-        });
-
-        /* Front/rear protective frame and mounting rails */
-        addBox(2.28, .09, .12, metalMat, 0, .98, 1.27);
-        addBox(2.28, .09, .12, metalMat, 0, .98, -1.27);
-        [-.92, .92].forEach(x => {
-            addBox(.09, .12, 2.2, edgeMat, x, 1.2, -.02);
-        });
-
-        /* Battery pack secured low in the centre */
-        addBox(1.05, .42, .92, batteryMat, -.48, 1.38, -.32);
-        addBox(.78, .045, .66, mat(0x3b4449), -.48, 1.615, -.32);
-        addBox(.14, .045, .22, wireRed, -.48, 1.65, -.32);
-        addBox(.14, .045, .22, wireBlack, -.22, 1.65, -.32);
-
-        /* Motor driver board with terminal blocks */
-        addBox(.82, .075, .55, pcbMat, .58, 1.36, .57);
-        addBox(.25, .09, .18, mat(0x242a2d), .36, 1.445, .57);
-        addBox(.25, .09, .18, mat(0x242a2d), .78, 1.445, .57);
-        for (let i = 0; i < 5; i++) {
-            addBox(.07, .025, .07, connectorMat, .28 + i * .14, 1.415, .57);
-        }
-
-        /* Main controller/electronics board */
-        addBox(.92, .075, .68, boardBlue, .55, 1.39, -.45);
-        addBox(.28, .12, .25, mat(0x20282c), .55, 1.48, -.45);
-        addBox(.16, .07, .12, metalMat, .25, 1.46, -.27);
-        addBox(.16, .07, .12, metalMat, .84, 1.46, -.63);
-
-        /* Bluetooth module on the controller board */
-        addBox(.34, .055, .2, mat(0x245f91), .84, 1.48, -.12);
-        addBox(.22, .018, .12, metalMat, .84, 1.517, -.12);
-        addBox(.025, .14, .025, metalMat, .98, 1.57, -.12);
-
-        /* Visible wiring between battery, driver and controller */
-        const addWire = (points, material, radius = .025) => {
-            const curve = new THREE.CatmullRomCurve3(
-                points.map(p => new THREE.Vector3(p[0], p[1], p[2]))
-            );
-            const tube = new THREE.Mesh(
-                new THREE.TubeGeometry(curve, 20, radius, 8, false),
-                material
-            );
-            robotGroup.add(tube);
-        };
-
-        addWire([[-.1, 1.63, -.32], [.12, 1.72, -.05], [.38, 1.55, .35]], wireRed);
-        addWire([[-.22, 1.62, -.32], [.02, 1.69, -.12], [.48, 1.53, .48]], wireBlack);
-        addWire([[.52, 1.49, .34], [.72, 1.58, .08], [.75, 1.5, -.12]], wireRed, .018);
-        addWire([[.65, 1.48, .34], [.92, 1.55, .15], [.91, 1.5, -.1]], wireBlack, .018);
-
-        /* Small mounting bolts on the deck */
-        [-.98, .98].forEach(x => {
-            [-1.05, 1.05].forEach(z => {
-                const bolt = new THREE.Mesh(
-                    new THREE.CylinderGeometry(.045, .045, .025, 16),
-                    connectorMat
-                );
-                bolt.position.set(x, 1.22, z);
-                robotGroup.add(bolt);
-            });
-        });
-
-        /* Subtle engineering details: board standoffs and reinforced corners */
-        [[.18, -.78], [.91, -.78], [.18, .02], [.91, .02]].forEach(([x, z]) => {
-            const post = new THREE.Mesh(
-                new THREE.CylinderGeometry(.035, .035, .12, 12),
-                metalMat
-            );
-            post.position.set(x, 1.27, z);
-            robotGroup.add(post);
-        });
-
-        [-1, 1].forEach(side => {
-            addBox(.12, .2, .18, edgeMat, side * 1.18, 1.08, .88);
-            addBox(.12, .2, .18, edgeMat, side * 1.18, 1.08, -.88);
-        });
-
-        updateObjectCounter();
+  function parseCsv(text) {
+    const rows = [];
+    let row = [], cell = "", quoted = false;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i], next = text[i + 1];
+      if (char === '"' && quoted && next === '"') { cell += '"'; i++; }
+      else if (char === '"') quoted = !quoted;
+      else if ((char === "," || char === ";" || char === "\t") && !quoted) { row.push(cell); cell = ""; }
+      else if ((char === "\n" || char === "\r") && !quoted) {
+        if (char === "\r" && next === "\n") i++;
+        row.push(cell); rows.push(row); row = []; cell = "";
+      } else cell += char;
     }
+    if (cell.length || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter(function (item) { return item.some(function (v) { return String(v).trim() !== ""; }); });
+  }
 
-    function addComponentTo3D(component) {
-
-        if (!robotGroup || !THREE) return;
-
-
-        let object;
-
-
-        if (component.type === "motor") {
-
-            object =
-                new THREE.Mesh(
-                    new THREE.CylinderGeometry(
-                        .32,
-                        .32,
-                        .7,
-                        24
-                    ),
-                    createMaterial(0x555f5b)
-                );
-
-            object.rotation.z =
-                Math.PI / 2;
-
-        }
-
-
-        else if (component.type === "sensor") {
-
-            object =
-                new THREE.Mesh(
-                    new THREE.SphereGeometry(
-                        .28,
-                        24,
-                        24
-                    ),
-                    createMaterial(0x39e58c)
-                );
-
-        }
-
-
-        else if (component.type === "camera") {
-
-            object =
-                new THREE.Mesh(
-                    new THREE.BoxGeometry(
-                        .6,
-                        .45,
-                        .35
-                    ),
-                    createMaterial(0x202b27)
-                );
-
-        }
-
-
-        else if (component.type === "battery") {
-
-            object =
-                new THREE.Mesh(
-                    new THREE.BoxGeometry(
-                        .8,
-                        .35,
-                        1.1
-                    ),
-                    createMaterial(0xd3a83e)
-                );
-
-        }
-
-
-        else {
-
-            object =
-                new THREE.Mesh(
-                    new THREE.BoxGeometry(
-                        .75,
-                        .2,
-                        .55
-                    ),
-                    createMaterial(0x2d8060)
-                );
-        }
-
-
-        if (!object) return;
-
-
-        const index =
-            robotGroup.children.length;
-
-        object.position.set(
-            ((index % 3) - 1) * .7,
-            2.1 + Math.floor(index / 3) * .35,
-            0
-        );
-
-
-        object.userData.componentId =
-            component.id;
-
-
-        robotGroup.add(object);
-
-
-        updateObjectCounter();
+  async function importCsv(file) {
+    const text = await file.text();
+    const rows = parseCsv(text.replace(/^\uFEFF/, ""));
+    if (rows.length < 2) { toast("В CSV нет строк с измерениями."); return; }
+    const headers = rows[0].map(function (v) { return String(v).trim().toLowerCase(); });
+    const indexes = {
+      timestamp: headers.indexOf("timestamp"),
+      soil: headers.indexOf("soil"),
+      temperature: headers.indexOf("temperature"),
+      humidity: headers.indexOf("humidity")
+    };
+    if (indexes.soil < 0 && indexes.temperature < 0 && indexes.humidity < 0) {
+      toast("Не найдены столбцы soil, temperature или humidity."); return;
     }
+    let imported = 0;
+    rows.slice(1).forEach(function (cells) {
+      const item = {};
+      Object.keys(indexes).forEach(function (key) { if (indexes[key] >= 0) item[key] = cells[indexes[key]]; });
+      if (addReading(item, "CSV: " + file.name)) imported++;
+    });
+    toast(imported ? "Импортировано измерений: " + imported : "Не найдено корректных измерений.");
+  }
 
-
-    function rebuild3D() {
-
-        if (!robotGroup) return;
-
-        createBaseRobot();
-
-        components.forEach(component => {
-
-            addComponentTo3D(component);
-
-        });
+  function handleSerialLine(line) {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    try {
+      const data = JSON.parse(trimmed);
+      if (addReading(data, "USB Serial")) {
+        if ($("connectionLog") && $("connectionLog").querySelector(".empty-state")) $("connectionLog").textContent = "";
+      }
+    } catch (error) {
+      addConnectionLog("Строка пропущена: ожидался JSON с полями soil, temperature, humidity.");
     }
+  }
 
+  function addConnectionLog(message) {
+    const container = $("connectionLog");
+    if (!container) return;
+    const empty = container.querySelector(".empty-state");
+    if (empty) container.textContent = "";
+    const item = document.createElement("div");
+    item.className = "log-entry";
+    const time = document.createElement("b");
+    time.textContent = new Date().toLocaleTimeString("ru-RU");
+    const text = document.createElement("span");
+    text.textContent = message;
+    item.appendChild(time); item.appendChild(text);
+    container.prepend(item);
+    while (container.children.length > 30) container.lastElementChild.remove();
+  }
 
-    function animate() {
-
-        requestAnimationFrame(animate);
-
-        if (!renderer || !scene || !camera) {
-            return;
-        }
-
-
-        if (robotGroup) {
-
-            robotGroup.rotation.x =
-                rotationX;
-
-            robotGroup.rotation.y =
-                rotationY;
-
-        }
-
-
-        renderer.render(
-            scene,
-            camera
-        );
+  async function connectSerial() {
+    if (!("serial" in navigator)) {
+      toast("Web Serial не поддерживается. Открой сайт в актуальном Chrome или Edge на компьютере.");
+      return;
     }
-
-
-    function resizeThree() {
-
-        const container =
-            $("threeContainer");
-
-        if (
-            !container ||
-            !renderer ||
-            !camera
-        ) {
-            return;
+    try {
+      serialPort = await navigator.serial.requestPort();
+      await serialPort.open({ baudRate: 9600 });
+      serialBuffer = "";
+      const decoder = new TextDecoder();
+      serialReader = serialPort.readable.getReader();
+      setConnection(true, "USB Serial · 9600 baud");
+      addConnectionLog("Последовательный порт подключён (9600 baud).");
+      addJournalEntry("Подключён контроллер", "USB Serial · 9600 baud", "connection");
+      while (serialPort && serialPort.readable) {
+        const result = await serialReader.read();
+        if (result.done) break;
+        serialBuffer += decoder.decode(result.value, { stream: true });
+        const lines = serialBuffer.split(/\r?\n/);
+        serialBuffer = lines.pop() || "";
+        lines.forEach(handleSerialLine);
+        if (serialBuffer.length > 10000) {
+          serialBuffer = "";
+          addConnectionLog("Слишком длинная строка без перевода строки была сброшена.");
         }
-
-
-        const width =
-            container.clientWidth;
-
-        const height =
-            container.clientHeight;
-
-
-        if (!width || !height) return;
-
-
-        camera.aspect =
-            width / height;
-
-        camera.updateProjectionMatrix();
-
-
-        renderer.setSize(
-            width,
-            height
-        );
+      }
+    } catch (error) {
+      if (error && error.name !== "NotFoundError" && error.name !== "AbortError") {
+        console.error("Serial error:", error);
+        toast("Ошибка подключения: " + (error.message || "неизвестная ошибка"));
+        addConnectionLog("Ошибка: " + (error.message || "неизвестная ошибка"));
+      }
+    } finally {
+      if (serialReader) {
+        try { serialReader.releaseLock(); } catch (error) {}
+        serialReader = null;
+      }
+      if (serialPort) {
+        try { await serialPort.close(); } catch (error) {}
+        serialPort = null;
+      }
+      if (serialConnected) {
+        setConnection(false);
+        addConnectionLog("Последовательное соединение закрыто.");
+        addJournalEntry("Отключён контроллер", "USB Serial соединение закрыто.", "connection");
+      }
     }
+  }
 
-
-    window.addEventListener(
-        "resize",
-        resizeThree
-    );
-
-
-    /* =====================================================
-       3D CONTROLS
-    ===================================================== */
-
-    function onPointerDown(event) {
-
-        isDragging = true;
-
-        previousMouseX =
-            event.clientX;
-
-        previousMouseY =
-            event.clientY;
+  async function disconnectSerial() {
+    if (serialReader) {
+      try { await serialReader.cancel(); } catch (error) {}
+    } else if (serialPort) {
+      try { await serialPort.close(); } catch (error) {}
+      serialPort = null;
+      setConnection(false);
     }
-
-
-    function onPointerMove(event) {
-
-        if (!isDragging) return;
-
-        const deltaX =
-            event.clientX -
-            previousMouseX;
-
-        const deltaY =
-            event.clientY -
-            previousMouseY;
-
-
-        rotationY +=
-            deltaX * .01;
-
-        rotationX +=
-            deltaY * .01;
-
-
-        rotationX =
-            Math.max(
-                -0.8,
-                Math.min(
-                    0.8,
-                    rotationX
-                )
-            );
-
-
-        previousMouseX =
-            event.clientX;
-
-        previousMouseY =
-            event.clientY;
-    }
-
-
-    function onPointerUp() {
-
-        isDragging = false;
-    }
-
-
-    function onWheel(event) {
-
-        event.preventDefault();
-
-        cameraDistance +=
-            event.deltaY * .005;
-
-        cameraDistance =
-            Math.max(
-                3,
-                Math.min(
-                    12,
-                    cameraDistance
-                )
-            );
-
-
-        const direction =
-            camera.position
-                .clone()
-                .normalize();
-
-
-        camera.position.copy(
-            direction.multiplyScalar(
-                cameraDistance
-            )
-        );
-    }
-
-
-    $("rotateLeft")?.addEventListener(
-        "click",
-        () => {
-            rotationY -= .35;
-        }
-    );
-
-
-    $("rotateRight")?.addEventListener(
-        "click",
-        () => {
-            rotationY += .35;
-        }
-    );
-
-
-    $("resetCamera")?.addEventListener(
-        "click",
-        () => {
-
-            rotationX = 0;
-
-            rotationY = 0;
-
-            cameraDistance = 7;
-
-            if (camera) {
-
-                camera.position.set(
-                    5,
-                    3.5,
-                    6
-                );
-
-            }
-
-        }
-    );
-
-
-    /* =====================================================
-       COMPONENTS
-    ===================================================== */
-
-    function addComponent(
-        type,
-        name,
-        mass,
-        power
-    ) {
-
-        const component = {
-
-            id:
-                Date.now() +
-                Math.random(),
-
-            type,
-
-            name,
-
-            mass:
-                Number(mass),
-
-            power:
-                Number(power)
-        };
-
-
-        components.push(
-            component
-        );
-
-
-        updateAssembly();
-
-        addComponentTo3D(
-            component
-        );
-
-        updateStats();
-
-        showToast(
-            `${name} добавлен в проект`
-        );
-    }
-
-
-    document
-        .querySelectorAll(".add-component")
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    addComponent(
-                        button.dataset.type,
-                        button.dataset.name,
-                        button.dataset.mass,
-                        button.dataset.power
-                    );
-
-                }
-            );
-
-        });
-
-
-    function removeComponent(id) {
-
-        components =
-            components.filter(
-                component =>
-                    component.id !== id
-            );
-
-
-        rebuild3D();
-
-        updateAssembly();
-
-        updateStats();
-
-        showToast(
-            "Компонент удалён"
-        );
-    }
-
-
-    function updateAssembly() {
-
-        const list =
-            $("assemblyList");
-
-        if (!list) return;
-
-
-        if (components.length === 0) {
-
-            list.innerHTML = `
-                <div style="
-                    padding:30px 10px;
-                    text-align:center;
-                    color:#82968d;
-                    font-size:12px;
-                ">
-                    Пока нет добавленных компонентов.
-                    <br><br>
-                    Перейди в «Компоненты».
-                </div>
-            `;
-
-        }
-
-        else {
-
-            list.innerHTML =
-                components.map(component => `
-
-                    <div class="assembly-item">
-
-                        <div>
-                            <strong>
-                                ${escapeHTML(component.name)}
-                            </strong>
-
-                            <small>
-                                ${component.mass} г ·
-                                ${component.power} W
-                            </small>
-                        </div>
-
-                        <button
-                            class="remove-component"
-                            data-id="${component.id}"
-                        >
-                            ×
-                        </button>
-
-                    </div>
-
-                `).join("");
-
-        }
-
-
-        document
-            .querySelectorAll(".remove-component")
-            .forEach(button => {
-
-                button.addEventListener(
-                    "click",
-                    () => {
-
-                        removeComponent(
-                            Number(
-                                button.dataset.id
-                            )
-                        );
-
-                    }
-                );
-
-            });
-
-
-        const mass =
-            components.reduce(
-                (sum, item) =>
-                    sum + item.mass,
-                0
-            );
-
-
-        const assemblyMass =
-            $("assemblyMass");
-
-        if (assemblyMass) {
-
-            assemblyMass.textContent =
-                `${mass} г`;
-
-        }
-
-    }
-
-
-    function updateStats() {
-
-        const mass =
-            components.reduce(
-                (sum, item) =>
-                    sum + item.mass,
-                0
-            );
-
-
-        const power =
-            components.reduce(
-                (sum, item) =>
-                    sum + item.power,
-                0
-            );
-
-
-        if ($("componentStat")) {
-
-            $("componentStat")
-                .textContent =
-                components.length;
-
-        }
-
-
-        if ($("massStat")) {
-
-            $("massStat")
-                .textContent =
-                `${mass} г`;
-
-        }
-
-
-        if ($("powerStat")) {
-
-            $("powerStat")
-                .textContent =
-                `${power} W`;
-
-        }
-    }
-
-
-    function updateObjectCounter() {
-
-        if (!$("objectCounter")) return;
-
-        const count =
-            robotGroup
-                ? robotGroup.children.length
-                : 0;
-
-
-        $("objectCounter").textContent =
-            `Objects: ${count}`;
-    }
-
-
-    /* =====================================================
-       SEARCH
-    ===================================================== */
-
-    $("componentSearch")?.addEventListener(
-        "input",
-        event => {
-
-            const value =
-                event.target.value
-                    .toLowerCase()
-                    .trim();
-
-
-            document
-                .querySelectorAll(".component-card")
-                .forEach(card => {
-
-                    const name =
-                        card.dataset.name
-                            .toLowerCase();
-
-
-                    card.style.display =
-                        name.includes(value)
-                            ? ""
-                            : "none";
-
-                });
-
-        }
-    );
-
-
-    /* =====================================================
-       CALCULATOR
-    ===================================================== */
-
-    $("calculate")?.addEventListener(
-        "click",
-        () => {
-
-            const mass =
-                Number(
-                    $("robotMass").value
-                );
-
-            const speed =
-                Number(
-                    $("robotSpeed").value
-                );
-
-            const motorCount =
-                Number(
-                    $("motorCount").value
-                );
-
-            const efficiency =
-                Number(
-                    $("efficiency").value
-                );
-
-
-            if (
-                mass <= 0 ||
-                speed <= 0 ||
-                motorCount <= 0 ||
-                efficiency <= 0
-            ) {
-
-                showToast(
-                    "Введите корректные параметры"
-                );
-
-                return;
-            }
-
-
-            /*
-                Упрощённая инженерная модель:
-
-                P = F * v
-
-                F ≈ m * g * rolling resistance
-
-                Для демонстрационного прототипа
-                принимаем коэффициент сопротивления 0.15.
-            */
-
-            const g = 9.81;
-
-            const rollingResistance =
-                .15;
-
-
-            const force =
-                mass *
-                g *
-                rollingResistance;
-
-
-            const mechanicalPower =
-                force *
-                speed;
-
-
-            const requiredPower =
-                mechanicalPower /
-                (efficiency / 100);
-
-
-            const motorPower =
-                requiredPower /
-                motorCount;
-
-
-            const reserve =
-                requiredPower * 1.3;
-
-
-            $("powerResult")
-                .textContent =
-                `${requiredPower.toFixed(1)} W`;
-
-
-            $("motorPowerResult")
-                .textContent =
-                `${motorPower.toFixed(1)} W`;
-
-
-            $("reserveResult")
-                .textContent =
-                `${reserve.toFixed(1)} W`;
-
-
-            showToast(
-                "Расчёт выполнен"
-            );
-
-        }
-    );
-
-
-    /* =====================================================
-       CODE
-    ===================================================== */
-
-    $("runCode")?.addEventListener(
-        "click",
-        () => {
-
-            const code =
-                $("codeEditor").value;
-
-
-            const output =
-                $("consoleOutput");
-
-
-            const status =
-                $("codeStatus");
-
-
-            if (!code.trim()) {
-
-                status.textContent =
-                    "ERROR";
-
-                status.style.color =
-                    "#ff5f67";
-
-
-                output.innerHTML = `
-                    <div style="color:#ff5f67">
-                        > ERROR: Код пустой
-                    </div>
-                `;
-
-                return;
-            }
-
-
-            status.textContent =
-                "CHECKING...";
-
-
-            status.style.color =
-                "#ffd166";
-
-
-            output.innerHTML = `
-                <div>> Анализ исходного кода...</div>
-            `;
-
-
-            setTimeout(() => {
-
-                const errors = [];
-
-
-                if (
-                    !code.includes("setup")
-                ) {
-                    errors.push(
-                        "Функция setup() отсутствует"
-                    );
-                }
-
-
-                if (
-                    !code.includes("loop")
-                ) {
-                    errors.push(
-                        "Функция loop() отсутствует"
-                    );
-                }
-
-
-                if (
-                    !code.includes(";")
-                ) {
-                    errors.push(
-                        "Не найдены операторы ';'"
-                    );
-                }
-
-
-                if (errors.length > 0) {
-
-                    status.textContent =
-                        "ERROR";
-
-                    status.style.color =
-                        "#ff5f67";
-
-
-                    output.innerHTML =
-                        errors.map(
-                            error =>
-                                `<div style="color:#ff7777">
-                                    > ERROR: ${error}
-                                </div>`
-                        ).join("");
-
-                    return;
-                }
-
-
-                status.textContent =
-                    "OK";
-
-                status.style.color =
-                    "#39e58c";
-
-
-                output.innerHTML = `
-                    <div>> Parsing...</div>
-                    <div>> setup() found</div>
-                    <div>> loop() found</div>
-                    <div>> Syntax check: PASS</div>
-                    <div>> Arduino API: detected</div>
-                    <div style="color:#39e58c">
-                        > BUILD SUCCESS
-                    </div>
-                `;
-
-
-                showToast(
-                    "Проверка кода успешно завершена"
-                );
-
-            }, 800);
-
-        }
-    );
-
-
-    /* =====================================================
-       DIAGNOSTICS
-    ===================================================== */
-
-    $("runDiagnostics")?.addEventListener(
-        "click",
-        () => {
-
-            const ids = [
-                "diagController",
-                "diagBattery",
-                "diagMotors",
-                "diagSensors",
-                "diagSoftware"
-            ];
-
-
-            ids.forEach(id => {
-
-                const element =
-                    $(id);
-
-                if (!element) return;
-
-                element.textContent =
-                    "CHECKING...";
-
-                element.style.color =
-                    "#ffd166";
-
-            });
-
-
-            setTimeout(() => {
-
-                ids.forEach(id => {
-
-                    const element =
-                        $(id);
-
-                    if (!element) return;
-
-                    element.textContent =
-                        "PASS";
-
-                    element.style.color =
-                        "#39e58c";
-
-                });
-
-
-                showToast(
-                    "Диагностика завершена"
-                );
-
-            }, 1000);
-
-        }
-    );
-
-
-    /* =====================================================
-       SAVE PROJECT
-    ===================================================== */
-
-    function saveProject() {
-
-        const name =
-            $("projectName")
-                ? $("projectName").value
-                : "Autonomous Robot";
-
-
-        const project = {
-
-            name,
-
-            components,
-
-            code:
-                $("codeEditor")
-                    ? $("codeEditor").value
-                    : "",
-
-            savedAt:
-                new Date().toISOString()
-
-        };
-
-
-        localStorage.setItem(
-            "robolab_project",
-            JSON.stringify(project)
-        );
-
-
-        updateDashboardName(name);
-
-        showToast(
-            "Проект сохранён"
-        );
-    }
-
-
-    $("saveProject")?.addEventListener(
-        "click",
-        saveProject
-    );
-
-
-    function loadProject() {
-
-        const saved =
-            localStorage.getItem(
-                "robolab_project"
-            );
-
-
-        if (!saved) {
-
-            updateAssembly();
-
-            updateStats();
-
-            return;
-        }
-
-
-        try {
-
-            const project =
-                JSON.parse(saved);
-
-
-            components =
-                Array.isArray(
-                    project.components
-                )
-                    ? project.components
-                    : [];
-
-
-            if ($("projectName")) {
-
-                $("projectName").value =
-                    project.name ||
-                    "Autonomous Robot";
-
-            }
-
-
-            if ($("codeEditor") &&
-                project.code) {
-
-                $("codeEditor").value =
-                    project.code;
-
-            }
-
-
-            updateDashboardName(
-                project.name ||
-                "Autonomous Robot"
-            );
-
-
-            updateAssembly();
-
-            updateStats();
-
-
-        }
-        catch (error) {
-
-            console.error(
-                "Load error:",
-                error
-            );
-
-        }
-
-    }
-
-
-    /* =====================================================
-       EXPORT
-    ===================================================== */
-
-    $("exportProject")?.addEventListener(
-        "click",
-        () => {
-
-            const project = {
-
-                name:
-                    $("projectName")?.value ||
-                    "Autonomous Robot",
-
-                components,
-
-                code:
-                    $("codeEditor")?.value ||
-                    "",
-
-                exportedAt:
-                    new Date().toISOString()
-
-            };
-
-
-            const blob =
-                new Blob(
-                    [
-                        JSON.stringify(
-                            project,
-                            null,
-                            2
-                        )
-                    ],
-                    {
-                        type:
-                            "application/json"
-                    }
-                );
-
-
-            const url =
-                URL.createObjectURL(blob);
-
-
-            const link =
-                document.createElement("a");
-
-
-            link.href = url;
-
-            link.download =
-                "robolab-project.json";
-
-
-            link.click();
-
-
-            URL.revokeObjectURL(
-                url
-            );
-
-
-            showToast(
-                "Проект экспортирован"
-            );
-
-        }
-    );
-
-
-    /* =====================================================
-       PROJECT NAME
-    ===================================================== */
-
-    $("projectName")?.addEventListener(
-        "input",
-        event => {
-
-            updateDashboardName(
-                event.target.value
-            );
-
-        }
-    );
-
-
-    function updateDashboardName(name) {
-
-        if (!$("dashboardProjectName")) {
-            return;
-        }
-
-
-        $("dashboardProjectName")
-            .textContent =
-            name ||
-            "Autonomous Robot";
-    }
-
-
-    /* =====================================================
-       SECURITY HELPER
-    ===================================================== */
-
-    function escapeHTML(value) {
-
-        return String(value)
-            .replaceAll("&", "&amp;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;")
-            .replaceAll('"', "&quot;")
-            .replaceAll("'", "&#039;");
-    }
-
-
-    /* =====================================================
-       START
-    ===================================================== */
-
-    loadProject();
-
-    initThree();
-
-    updateAssembly();
-
-    updateStats();
-
+  }
+
+  function openPage(pageId) {
+    const target = $(pageId);
+    if (!target || !target.classList.contains("page")) return;
+    document.querySelectorAll(".page").forEach(function (page) { page.classList.toggle("active", page === target); });
+    document.querySelectorAll(".nav-btn").forEach(function (button) { button.classList.toggle("active", button.dataset.page === pageId); });
+    const activeButton = document.querySelector('.nav-btn[data-page="' + pageId + '"]');
+    if ($("pageTitle")) $("pageTitle").textContent = activeButton ? activeButton.textContent.trim().replace(/^[⌂◈✧⌖⌁▥✣⚙◷]\s*/, "") : "AETHER Mission Control";
+    if (pageId === "analytics") renderAnalytics();
+    if (pageId === "map") renderMap();
+  }
+
+  document.querySelectorAll(".nav-btn").forEach(function (button) {
+    button.addEventListener("click", function () { openPage(button.dataset.page); });
+  });
+  document.querySelectorAll("[data-page]").forEach(function (link) {
+    if (link.classList.contains("nav-btn")) return;
+    link.addEventListener("click", function (event) {
+      if (link.tagName === "A") event.preventDefault();
+      openPage(link.dataset.page);
+    });
+  });
+  document.querySelectorAll("[data-open]").forEach(function (button) {
+    button.addEventListener("click", function () { openPage(button.dataset.open); });
+  });
+
+  const clock = $("clock");
+  function updateClock() {
+    if (clock) clock.textContent = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  const mapCanvas = $("mapCanvas");
+  if (mapCanvas) {
+    mapCanvas.addEventListener("click", function (event) {
+      if (event.target.closest("button")) return;
+      const rect = mapCanvas.getBoundingClientRect();
+      addMapPoint((event.clientX - rect.left) / rect.width * 900, (event.clientY - rect.top) / rect.height * 520);
+    });
+  }
+  if ($("addPoint")) $("addPoint").addEventListener("click", function () {
+    const angle = points.length * 2.399963;
+    const radius = 35 + (points.length % 5) * 13;
+    addMapPoint(450 + Math.cos(angle) * radius * 3.2, 260 + Math.sin(angle) * radius * 2.1);
+  });
+  if ($("clearPoints")) $("clearPoints").addEventListener("click", function () {
+    if (!points.length) { toast("План уже пуст."); return; }
+    points = []; writeStore(STORAGE.points, points); renderMap(); toast("Точки плана очищены.");
+  });
+
+  if ($("exportCsv")) $("exportCsv").addEventListener("click", exportReadings);
+  if ($("csvInput")) $("csvInput").addEventListener("change", async function (event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    try { await importCsv(file); } catch (error) { console.error(error); toast("Не удалось прочитать CSV-файл."); }
+    event.target.value = "";
+  });
+
+  if ($("connectSerial")) $("connectSerial").addEventListener("click", connectSerial);
+  if ($("disconnectSerial")) $("disconnectSerial").addEventListener("click", disconnectSerial);
+  if ($("serialSupport")) {
+    $("serialSupport").textContent = "Web Serial: " + ("serial" in navigator ? "доступен в этом браузере" : "не поддерживается этим браузером") + ". Для подключения нужен USB-кабель и разрешение браузера.";
+  }
+
+  document.querySelectorAll(".eng-tab").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      const id = tab.dataset.tab;
+      document.querySelectorAll(".eng-tab").forEach(function (item) { item.classList.toggle("active", item === tab); });
+      document.querySelectorAll(".eng-content").forEach(function (panel) { panel.classList.toggle("active", panel.id === id); });
+    });
+  });
+  document.querySelectorAll("[data-check]").forEach(function (checkbox) {
+    checkbox.checked = Boolean(checklist[checkbox.dataset.check]);
+    checkbox.addEventListener("change", function () {
+      checklist[checkbox.dataset.check] = checkbox.checked;
+      writeStore(STORAGE.checks, checklist);
+    });
+  });
+
+  if ($("saveNote")) $("saveNote").addEventListener("click", function () {
+    const field = $("noteText");
+    const value = field ? field.value.trim() : "";
+    if (!value) { toast("Сначала напиши заметку."); return; }
+    addJournalEntry("Заметка команды", value, "note");
+    field.value = "";
+    toast("Заметка сохранена в журнале.");
+  });
+  if ($("exportJournal")) $("exportJournal").addEventListener("click", function () {
+    if (!journal.length) { toast("Журнал пока пуст."); return; }
+    const lines = ["timestamp,title,description,kind"];
+    journal.slice().reverse().forEach(function (entry) {
+      lines.push([entry.timestamp, entry.title, entry.description, entry.kind].map(csvCell).join(","));
+    });
+    downloadFile("aether-expedition-journal.csv", "\uFEFF" + lines.join("\r\n"), "text/csv;charset=utf-8");
+  });
+
+  window.addEventListener("resize", function () {
+    if ($("analytics") && $("analytics").classList.contains("active")) renderAnalytics();
+  });
+
+  function renderAllData() {
+    renderHomeMetrics();
+    renderTelemetry();
+    renderAnalytics();
+    renderJournal();
+  }
+
+  renderMap();
+  renderJournal();
+  renderAllData();
+  setConnection(false);
 });
