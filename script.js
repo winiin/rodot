@@ -106,8 +106,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function addReading(raw, source) {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) return false;
+    const parsedTimestamp = raw.timestamp ? new Date(raw.timestamp) : new Date();
     const reading = {
-      timestamp: raw.timestamp ? new Date(raw.timestamp).toISOString() : new Date().toISOString(),
+      timestamp: Number.isNaN(parsedTimestamp.getTime()) ? new Date().toISOString() : parsedTimestamp.toISOString(),
       soil: toValidNumber(raw.soil, 0, 100),
       temperature: toValidNumber(raw.temperature, -50, 100),
       humidity: toValidNumber(raw.humidity, 0, 100),
