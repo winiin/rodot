@@ -18,3 +18,180 @@
 @media(max-width:1120px){.app-shell{grid-template-columns:220px minmax(0,1fr)}.main-area{padding:0 20px 25px}.metric-grid,.analytics-summary{grid-template-columns:repeat(2,1fr)}.process-grid{grid-template-columns:repeat(2,1fr)}.hero{padding:25px}.hero-art{min-height:240px}}
 @media(max-width:780px){.app-shell{display:block}.sidebar{height:auto;position:relative;padding:12px;border-right:0;border-bottom:1px solid var(--line)}.brand{padding:0 4px 12px}.nav-caption,.sidebar-bottom{display:none}.nav-list{display:flex;overflow-x:auto;padding-bottom:2px}.nav-btn{white-space:nowrap;padding:9px 10px;font-size:10px}.main-area{padding:0 13px 25px}.topbar{height:68px}.topbar h1{font-size:15px}.top-eyebrow{font-size:7px}.clock{display:none}.mobile-menu{display:none}.hero{grid-template-columns:1fr;padding:21px}.hero h2{font-size:35px}.hero-art{min-height:220px}.home-grid,.robot-showcase,.connect-grid{grid-template-columns:1fr}.robot-showcase-art{min-height:230px}.robot-showcase-copy{padding:21px}.section-title{align-items:flex-start;flex-direction:column}.metric-grid{gap:8px}.metric-card{padding:12px}.metric-card>strong{font-size:19px}.sensor-grid{grid-template-columns:1fr}.charts-grid{grid-template-columns:1fr}.map-canvas{height:320px}.mission-banner{padding:20px}.mission-emblem{width:85px;height:85px}.target-grid{grid-template-columns:repeat(2,1fr)}.component-grid{grid-template-columns:1fr}.process-grid{grid-template-columns:repeat(2,1fr)}.site-footer{flex-direction:column}.connection-banner{align-items:flex-start;flex-wrap:wrap}.connection-banner>div{min-width:70%}.journal-entry{grid-template-columns:75px 1fr}.journal-entry button{grid-column:2;justify-self:start}.architecture-flow>i{transform:rotate(90deg)}}
 @media(max-width:420px){.metric-grid,.analytics-summary,.mission-steps,.logic-grid{grid-template-columns:1fr 1fr}.process-grid{grid-template-columns:1fr 1fr}.map-toolbar{align-items:flex-start;flex-direction:column}.map-canvas{height:270px}.hero-foot{font-size:7px}.hero h2{font-size:31px}.mission-emblem{display:none}}
+
+
+/* AETHER identity refresh — starlight, open sky and summer energy */
+:root{
+ --bg:#07111f;
+ --panel:#101f30;
+ --panel2:#162b3b;
+ --line:#29495a;
+ --text:#f4f8f4;
+ --muted:#a8bdc1;
+ --cyan:#63e6d0;
+ --gold:#ffd36e;
+ --lav:#c3b8ff;
+ --green:#a8e8b2;
+ --danger:#ff9da8;
+}
+body{
+ background:
+  radial-gradient(ellipse at 78% 2%,#174e5266 0,transparent 34%),
+  radial-gradient(ellipse at 8% 88%,#293c6b55 0,transparent 38%),
+  #07111f;
+}
+.ambient{
+ background:
+  radial-gradient(ellipse at 76% -10%,#1d77704d 0,transparent 40%),
+  radial-gradient(ellipse at 8% 55%,#354b8150 0,transparent 37%),
+  radial-gradient(ellipse at 96% 78%,#b47b3a1b 0,transparent 27%);
+}
+.ambient:after{opacity:.34;background-size:230px 210px}
+.sidebar{
+ background:linear-gradient(180deg,#091827f7 0%,#0b1c2bf5 55%,#101c31f7 100%);
+ border-right-color:#2b5360;
+ box-shadow:12px 0 40px #02091430;
+}
+.brand-symbol{
+ background:linear-gradient(145deg,#fff1bd 0%,#ffd36e 43%,#63e6d0 100%);
+ color:#102333;
+ border-radius:15px 15px 15px 5px;
+ box-shadow:0 0 0 5px #63e6d010,0 10px 32px #63e6d02a;
+}
+.brand b{letter-spacing:4px}
+.brand small{color:#8fb4b4}
+.nav-caption,.kicker{color:#78bcb5}
+.nav-btn{color:#b4c9ca}
+.nav-btn i{color:#82aaa9}
+.nav-btn:hover,.nav-btn.active{
+ background:linear-gradient(100deg,#17413f99,#1b3450aa);
+ border-color:#4d9c91;
+ color:#8df3dc;
+ box-shadow:inset 3px 0 0 #63e6d0,0 5px 18px #02091430;
+}
+.nav-btn.active i{color:var(--gold)}
+.connection-card{background:#102a32;border-color:#35636a}
+.live-dot{background:#63e6d0;box-shadow:0 0 12px #63e6d0a8}
+.main-area{background:linear-gradient(180deg,#07111f18,#07111f00)}
+.topbar{border-bottom-color:#294653}
+.top-eyebrow{color:#ffd36e}
+.clock{color:#9bd8ce}
+.system-pill,.subtle-tag{border-color:#315761;background:#0e2630a8;color:#a9c8c5}
+.hero{
+ border-color:#39716e;
+ background:
+  radial-gradient(circle at 78% 48%,#63e6d044,transparent 34%),
+  radial-gradient(circle at 93% 8%,#ffd36e26,transparent 25%),
+  linear-gradient(118deg,#123b3d 0%,#102b3a 48%,#172542 100%);
+ box-shadow:0 20px 60px #02091455,inset 0 1px #ffffff12;
+}
+.hero:after{color:#ffe29a;text-shadow:0 0 18px #ffd36e88}
+.overline{border-color:#5d8e7e;background:#153a3b;color:#ffe4a4}
+.overline b{color:#75f0d8}
+.hero h2 em,.page-intro h2 em,.robot-showcase-copy h3 em{color:#73ead4}
+.hero p,.page-intro p{color:#c0d5d2}
+.btn{border-color:#3d686d;background:#15343e}
+.btn:hover{border-color:#7af0da;box-shadow:0 7px 24px #63e6d01c}
+.btn-primary{
+ background:linear-gradient(110deg,#65e7d2,#a7f0d9 56%,#ffe08c);
+ color:#0b2630;border-color:#8af0dc;
+ box-shadow:0 8px 25px #63e6d02b;
+}
+.btn-ghost{background:#0c2638c9}
+.hero-foot{color:#9bc3bd}
+.orbit-one{border-color:#63e6d052}
+.orbit-two{border-color:#ffd36e42}
+.orbit-star{color:#ffdc86;text-shadow:0 0 20px #ffd36e88}
+.art-caption span{color:#75ead5}
+.art-caption small{color:#a8c7c2}
+.metric-card,.panel,.sensor-card,.summary-card,.component-card,.process-card,.target-card{
+ background:linear-gradient(145deg,#142c3bed,#0d1d2cf5);
+ border-color:#2b515d;
+ box-shadow:0 9px 28px #02091424,inset 0 1px #ffffff08;
+}
+.metric-card{position:relative;overflow:hidden}
+.metric-card:before{
+ content:"";position:absolute;left:0;top:0;width:42%;height:2px;
+ background:linear-gradient(90deg,#63e6d0,transparent);
+}
+.metric-top i,.process-icon,.component-icon,.quick-icon{color:#73ead4}
+.metric-status{color:#ffd36e}
+.section-title h2,.panel-heading h3{color:#f4f8f4}
+.section-title p,.mission-panel>p{color:#b4c9c8}
+.panel-icon,.quick-icon,.component-icon{background:#17413f;color:#79ead5}
+.objective-line{border-top-color:#294a55}
+.objective-line>span,.process-card>span,.mission-steps article>span{color:#ffd36e}
+.text-link{color:#73ead4}
+.quick-link{border-top-color:#294a55}
+.quick-link>i{color:#ffd36e}
+.robot-showcase-art{
+ background:
+  radial-gradient(circle at 50% 60%,#24736c88,transparent 58%),
+  radial-gradient(circle at 80% 20%,#d6a44a22,transparent 28%),
+  linear-gradient(145deg,#12363b,#101d32);
+}
+.model-orbit{border-color:#63e6d05c}
+.drag-hint{color:#a6d2c8}
+.spec-pills span{border-color:#3a716b;color:#c5e6dc;background:#12353a80}
+.process-card>span{color:#ffd36e}
+.component-index{color:#78a8a5}
+.info-banner{border-color:#3b6a68;background:#102f36}
+.info-banner>span{color:#73ead4}
+.info-banner p{color:#c0d7d1}
+.info-banner.warning{border-color:#8a7145;background:#302b20}
+.mission-banner{
+ border-color:#39716e;
+ background:
+  radial-gradient(circle at 86% 46%,#63e6d044,transparent 34%),
+  radial-gradient(circle at 95% 8%,#ffd36e24,transparent 25%),
+  linear-gradient(120deg,#123b3d,#10283a 70%,#172542);
+}
+.mission-banner p{color:#c0d5d2}
+.mission-emblem{border-color:#d2b76e;color:#ffd36e;box-shadow:0 0 35px #ffd36e12}
+.mission-steps article,.logic-grid article{border-color:#2d515d;background:#112a39}
+.mission-steps small{color:#73ead4}
+.target-card>span{color:#73ead4}
+.map-panel{background:#102331}
+.map-canvas{border-color:#39636b;background:#0c202d}
+.map-overlay-label,.map-coordinates{background:#081923ed;border-color:#3a6269;color:#d7ece5}
+.map-legend{color:#a8c3c1}
+.legend-cyan{background:#63e6d0}
+.legend-gold{background:#ffd36e}
+.point-row{border-color:#2d515d;background:#112a39}
+.point-row button{border-color:#79535b;background:#30212a;color:#ffb4bd}
+.connection-banner{border-color:#39666a;background:#102d36}
+.connection-symbol{color:#73ead4}
+.sensor-head i,.chart-unit{color:#ffd36e}
+.sensor-bar{background:#29424c}
+.sensor-bar span{background:linear-gradient(90deg,#63e6d0,#ffd36e)}
+th,td{border-bottom-color:#294b56}
+th{color:#90b8b5}
+td{color:#d6e8e2}
+.upload-box{border-color:#4a807b;background:#102b35}
+.upload-box>span{color:#73ead4}
+.chart-panel{background:linear-gradient(145deg,#142c3bed,#0d1d2cf5)}
+.chart-empty{color:#9ebbb8}
+.insight-panel p{color:#c0d5d2}
+.protocol-card pre{background:#081923;border-color:#31545e;color:#a7e8dc}
+.protocol-card code{color:#73ead4}
+.eng-tab{border-color:#31545e;background:#102735;color:#a8c3c1}
+.eng-tab.active{background:#17413f;border-color:#63bba9;color:#8df3dc}
+.architecture-flow{border-color:#31545e;background:#0e2230}
+.arch-node{border-color:#3a6b6e;background:#14343b}
+.arch-node span{color:#ffd36e}
+.architecture-flow>i{color:#73ead4}
+.checklist label{border-top-color:#294b56;color:#d5e7e1}
+.checklist input{accent-color:#63e6d0}
+.journal-entry{border-bottom-color:#294b56}
+.journal-entry time{color:#ffd36e}
+.journal-entry p{color:#a8c3c1}
+.journal-entry button{color:#f1a3ad}
+.note-form textarea{background:#091d29;border-color:#3a6269}
+.site-footer{border-top-color:#294653;color:#86aaa8}
+.toast{border-color:#4c817b;background:#12343b}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline-color:#73ead4}
+@media(max-width:780px){
+ .sidebar{background:linear-gradient(180deg,#091827,#0d2230);border-bottom-color:#31545e}
+ .nav-list{scrollbar-color:#39766f #0b1b27}
+ .nav-btn.active{box-shadow:inset 0 -2px 0 #63e6d0}
+}
