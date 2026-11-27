@@ -195,3 +195,214 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline-color:#7
  .nav-list{scrollbar-color:#39766f #0b1b27}
  .nav-btn.active{box-shadow:inset 0 -2px 0 #63e6d0}
 }
+
+
+/* AETHER — visual direction based on the team's twilight-ocean star banner */
+:root{
+ --bg:#080d25;
+ --panel:#111632;
+ --panel2:#191d43;
+ --line:#34345f;
+ --text:#f4efff;
+ --muted:#aaa7c8;
+ --cyan:#b9b5ff;
+ --gold:#f4c6d8;
+ --lav:#b9b5ff;
+ --green:#b6c6e8;
+ --danger:#f0a9c2;
+ --display:'Cormorant Garamond',Georgia,serif;
+}
+html{background:#080d25}
+body{
+ background:
+  radial-gradient(ellipse at 50% -12%,#343b78 0%,transparent 43%),
+  radial-gradient(ellipse at 4% 42%,#4c345f55 0%,transparent 31%),
+  radial-gradient(ellipse at 96% 48%,#48345e55 0%,transparent 31%),
+  linear-gradient(180deg,#080d25 0%,#101633 55%,#0a1028 100%);
+}
+.ambient{
+ background:
+  radial-gradient(ellipse at 50% -15%,#6267a455 0%,transparent 46%),
+  radial-gradient(ellipse at 8% 60%,#a16a9b22 0%,transparent 35%),
+  radial-gradient(ellipse at 92% 65%,#8c699e20 0%,transparent 35%);
+}
+.ambient:after{
+ opacity:.48;
+ background-image:
+  radial-gradient(1.3px 1.3px at 12% 16%,#fff 98%,transparent),
+  radial-gradient(1px 1px at 40% 67%,#f5d9ed 98%,transparent),
+  radial-gradient(1.7px 1.7px at 77% 24%,#fff 98%,transparent),
+  radial-gradient(1px 1px at 91% 78%,#d6d3ff 98%,transparent),
+  radial-gradient(1px 1px at 58% 8%,#fff 98%,transparent),
+  radial-gradient(1px 1px at 25% 84%,#e8c4dc 98%,transparent);
+ background-size:260px 230px;
+}
+.sidebar{
+ background:linear-gradient(180deg,#080e27f7,#111531f8 65%,#0b1029f7);
+ border-right-color:#34345f;
+ box-shadow:12px 0 42px #02041455;
+}
+.brand{gap:13px}
+.brand-symbol{
+ background:linear-gradient(145deg,#fff4fc,#c9c4ff 55%,#e8b6d0);
+ color:#191638;
+ border:1px solid #e8d9ff88;
+ border-radius:50%;
+ box-shadow:0 0 24px #b9b5ff55,0 0 0 5px #b9b5ff0d;
+}
+.brand b{
+ font:600 27px var(--display);
+ letter-spacing:5px;
+ text-shadow:0 0 18px #d6c9ff44;
+}
+.brand small{color:#aaa5ce;letter-spacing:2px}
+.nav-caption,.kicker{color:#aaa4d6}
+.nav-btn{color:#c1bfdc}
+.nav-btn i{color:#aaa6d3}
+.nav-btn:hover,.nav-btn.active{
+ background:linear-gradient(100deg,#28274eaa,#1c2046bb);
+ border-color:#7770a9;
+ color:#e1d8ff;
+ box-shadow:inset 3px 0 0 #c4baff,0 6px 22px #03051a55;
+}
+.nav-btn.active i{color:#f1c9dc}
+.connection-card{background:#171a3b;border-color:#3b3b68}
+.live-dot{background:#d4c8ff;box-shadow:0 0 12px #c9baffbb}
+.topbar{border-bottom-color:#34345f}
+.top-eyebrow{color:#e4bfd8}
+.topbar h1{font-family:var(--display);font-size:25px;letter-spacing:.3px}
+.clock{color:#c7c2ed}
+.system-pill,.subtle-tag{border-color:#45436f;background:#111632bb;color:#c0bbdf}
+.hero{
+ border-color:#625b91;
+ background:
+  radial-gradient(ellipse at 50% 115%,#e5a9c844 0%,transparent 38%),
+  radial-gradient(circle at 77% 40%,#7772ba55 0%,transparent 36%),
+  radial-gradient(circle at 13% 10%,#9d7aab35 0%,transparent 31%),
+  linear-gradient(120deg,#151b43 0%,#101735 48%,#252044 100%);
+ box-shadow:0 22px 65px #02041466,inset 0 1px #ffffff17;
+}
+.hero:after{
+ content:"✦";
+ color:#f5d9ef;
+ text-shadow:0 0 10px #fff,0 0 24px #d5b8ff,0 0 42px #e5b4d5;
+}
+.overline{border-color:#7770a4;background:#222449;color:#f2d8e8}
+.overline b{color:#d2c9ff}
+.hero h2,.page-intro h2,.robot-showcase-copy h3{
+ font-family:var(--display);
+ letter-spacing:-.5px;
+}
+.hero h2{font-size:clamp(38px,4.6vw,59px);line-height:.98}
+.hero h2 em,.page-intro h2 em,.robot-showcase-copy h3 em{color:#d2c7ff}
+.hero p,.page-intro p{color:#c4c0dc}
+.btn{border-color:#59558a;background:#242449;color:#f3efff}
+.btn:hover{border-color:#d1c5ff;box-shadow:0 7px 25px #b9b5ff22}
+.btn-primary{
+ background:linear-gradient(110deg,#c9c1ff 0%,#e8c6e0 55%,#f5d3dc 100%);
+ color:#191633;border-color:#eee0ff;
+ box-shadow:0 8px 26px #c5b8ff30;
+}
+.btn-ghost{background:#111735cc}
+.hero-foot{color:#aaa6d1}
+.orbit-one{border-color:#c6baff55}
+.orbit-two{border-color:#edc4dc48}
+.orbit-star{color:#f5d9ef;text-shadow:0 0 20px #e6c6ff}
+.art-caption span{color:#d3c9ff}
+.art-caption small{color:#b7b1d6}
+.section-title h2,.panel-heading h3{font-family:var(--display);font-size:24px}
+.metric-card,.panel,.sensor-card,.summary-card,.component-card,.process-card,.target-card{
+ background:linear-gradient(145deg,#1a1e43ed,#10152ff5);
+ border-color:#37385f;
+ box-shadow:0 10px 30px #02041435,inset 0 1px #ffffff09;
+}
+.metric-card{position:relative;overflow:hidden}
+.metric-card:before{
+ content:"";position:absolute;left:0;top:0;width:44%;height:1px;
+ background:linear-gradient(90deg,#d4c8ff,transparent);
+}
+.metric-top i,.process-icon,.component-icon,.quick-icon{color:#c9c0ff}
+.metric-status{color:#edc4dc}
+.section-title p,.mission-panel>p{color:#bcb9d8}
+.panel-icon,.quick-icon,.component-icon{background:#29274f;color:#d0c7ff}
+.objective-line{border-top-color:#37385f}
+.objective-line>span,.process-card>span,.mission-steps article>span{color:#e9c6db}
+.text-link{color:#d0c7ff}
+.quick-link{border-top-color:#37385f}
+.quick-link>i{color:#e9c6db}
+.robot-showcase-art{
+ background:
+  radial-gradient(ellipse at 50% 85%,#b17aab55,transparent 53%),
+  radial-gradient(circle at 50% 35%,#6666a455,transparent 60%),
+  linear-gradient(145deg,#171d43,#11152f);
+}
+.model-orbit{border-color:#c9c0ff66}
+.drag-hint{color:#bcb6dc}
+.spec-pills span{border-color:#5b5688;color:#e0dcf5;background:#24244988}
+.process-card>span{color:#e9c6db}
+.component-index{color:#918cb9}
+.info-banner{border-color:#575181;background:#1a1d40}
+.info-banner>span{color:#d0c7ff}
+.info-banner p{color:#d0cbe4}
+.info-banner.warning{border-color:#81627b;background:#30213b}
+.mission-banner{
+ border-color:#655d91;
+ background:
+  radial-gradient(ellipse at 88% 50%,#b17aab55,transparent 37%),
+  radial-gradient(ellipse at 8% 5%,#7e7ab544,transparent 34%),
+  linear-gradient(120deg,#171d43,#111632 68%,#282044);
+}
+.mission-banner h3{font-family:var(--display);font-size:36px}
+.mission-banner p{color:#c7c2df}
+.mission-emblem{
+ border-color:#c6b9e6;color:#e9c9e1;
+ box-shadow:0 0 35px #c8b5ff20,inset 0 0 24px #c8b5ff0c;
+}
+.mission-steps article,.logic-grid article{border-color:#3b3b68;background:#171b3b}
+.mission-steps small{color:#c9c0ff}
+.target-card>span{color:#c9c0ff}
+.map-panel{background:#121832}
+.map-canvas{border-color:#4b4978;background:#0b1430}
+.map-overlay-label,.map-coordinates{background:#090f29ed;border-color:#555184;color:#e5e0f7}
+.map-legend{color:#bcb8d7}
+.legend-cyan{background:#c9c0ff}
+.legend-gold{background:#e9c6db}
+.point-row{border-color:#3b3b68;background:#171b3b}
+.point-row button{border-color:#77516c;background:#302039;color:#f0bfd5}
+.connection-banner{border-color:#514e80;background:#171b3e}
+.connection-symbol{color:#d0c7ff}
+.sensor-head i,.chart-unit{color:#edc4dc}
+.sensor-bar{background:#34365c}
+.sensor-bar span{background:linear-gradient(90deg,#b9b5ff,#efc2da)}
+th,td{border-bottom-color:#36375e}
+th{color:#aaa6d0}
+td{color:#e0def0}
+.upload-box{border-color:#666098;background:#171b3d}
+.upload-box>span{color:#d0c7ff}
+.chart-panel{background:linear-gradient(145deg,#1a1e43ed,#10152ff5)}
+.chart-empty{color:#aaa6ca}
+.insight-panel p{color:#c7c2df}
+.protocol-card pre{background:#0b112b;border-color:#454575;color:#d2caff}
+.protocol-card code{color:#d0c7ff}
+.eng-tab{border-color:#454575;background:#151a38;color:#bcb8d7}
+.eng-tab.active{background:#2a2854;border-color:#9288c8;color:#e0d9ff}
+.architecture-flow{border-color:#41416f;background:#111731}
+.arch-node{border-color:#5d5890;background:#202247}
+.arch-node span{color:#edc4dc}
+.architecture-flow>i{color:#d0c7ff}
+.checklist label{border-top-color:#36375e;color:#e1def0}
+.checklist input{accent-color:#c9c0ff}
+.journal-entry{border-bottom-color:#36375e}
+.journal-entry time{color:#e9c6db}
+.journal-entry p{color:#bcb8d7}
+.journal-entry button{color:#f0b4cd}
+.note-form textarea{background:#0c1230;border-color:#4c4a7a}
+.site-footer{border-top-color:#34345f;color:#9692bc}
+.toast{border-color:#625c91;background:#1b2044}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline-color:#d0c7ff}
+@media(max-width:780px){
+ .sidebar{background:linear-gradient(180deg,#090f29,#141832);border-bottom-color:#3c3b69}
+ .nav-list{scrollbar-color:#5b5688 #0b1029}
+ .nav-btn.active{box-shadow:inset 0 -2px 0 #c9c0ff}
+ .brand b{font-size:25px}
+}
